@@ -73,7 +73,6 @@ function load_multipole(ℓ, folder, k_grid, sky)
 end
 
 # CONFIGURATIONS
-
 emudir="effortEmu_w0wamnu/";
 nk = 49;
 x = Array(LinRange(0.02,0.5,nk));
@@ -97,13 +96,10 @@ end
 
 Mono_Emu = load_multipole(0, emudir, k_grid, z_idx)
 Quad_Emu = load_multipole(2, emudir, k_grid, z_idx);
-#    Hexa_Emu = load_multipole(4, emudir, k_grid, z_idx);
-println("load multipole emulators")################################
 
-cosmo=readdlm("data/abacus_cosmo.txt", ' '); #read some abacus cosmology, 1 for c000, 2~32 for 130~160
-println("reads in cosmo data")################################
+cosmo=readdlm("data/abacus_cosmo.txt", ' '); # read some abacus cosmology, 1 for c000, 2~32 for 130~160
+
 # BASIC EXAMPLE
-
 function theory(θ, n, z, Mono_Emu, Quad_Emu, n_bar)
     # θ[1:6] cosmoparams, ln_10_As, ns, h, ωb, ωc, Mν
     # θ[7:13] bias
@@ -116,20 +112,18 @@ function theory(θ, n, z, Mono_Emu, Quad_Emu, n_bar)
     wa = θ[8]
     Ωc = ωc/h/h
     Ωb = ωb/h/h
-
-    f = Effort._f_z(z, Ωc, Ωb, h, Mν, w0, wa); # unsure what f represents here
-    my_θ = deepcopy(θ) # unsure what this is doing here
-    my_θ[13] /= (0.7^2)
+    f = Effort._f_z(z, Ωc, Ωb, h, Mν, w0, wa); # linear growth factor
+    my_θ = deepcopy(θ)
+    my_θ[13] /= (0.7^2) # still want to figure out why dividing by these numbers?
     my_θ[14] /= (0.35^2)
     my_θ[15] /= (0.35^2)
     k_grid = Mono_Emu.P11.kgrid
     stoch_0, stoch_2 = Effort.get_stoch_terms(θ[16], θ[17], θ[18], n_bar, k_grid)
     return vcat((Effort.get_Pℓ(my_θ[1:8], vcat(my_θ[9:15]), f, Mono_Emu) .+ stoch_0)[1:n],
                 (Effort.get_Pℓ(my_θ[1:8], vcat(my_θ[9:15]), f, Quad_Emu) .+ stoch_2)[1:n])
-#               (Effort.get_Pℓ(my_θ[1:8], vcat(my_θ[9:15]), f, Hexa_Emu))[1:n])
 end;
 
-# i'm assuming these are just initial guesses??
+# Parameters to set for the mock observed data vector
 ln10As = cosmo[1,4]
 ns     = cosmo[1,5]
 h      = cosmo[1,3]
@@ -149,128 +143,126 @@ cϵ0    = 0.3
 cϵ1    = 0
 cϵ2    = -4.8;
 
-n = 18 #number of data point, first n in your k_grid # unsure what n represents here??
+n = 18 # number of data point, first n in your k_grid
 n_bar = 5e-4
-z = 0.8 #redshift, note this is not redshift index
+z = 0.8 # redshift, note this is not redshift index
 θ = [ln10As, ns, h, ωb, ωc, Mν, w0, wa, b1, b2, b3, b4, cct, cr1, cr2, cϵ0, cϵ1, cϵ2]
 
 benchmark_result = @benchmark theory(θ, n, z, Mono_Emu, Quad_Emu, n_bar)
-println(benchmark_result)######################################
-
 
 # LETS TRY PROFILE LIKELIHOOD
 # generate some synthetic data
-println("define new functions and quantities")####################################
-
 cov_20=readdlm("data/CovaPTcov_gaussian_AbacusFid_z0.8_n5e-4_Mono_Quad_Hexa.dat", ' ',Float64)
-indices = [3:20;33:50] # unsure what the indices here represent
-cov_20=cov_20[indices,indices];
-#println(cov_20)
-cosmoidx = 1; #using abacus c000 cosmology, just for example
-datavec4test=theory(θ, n, z, Mono_Emu, Quad_Emu, n_bar);
-θ
-println("reads in covariance matrix and stuff")################################### 
-@model function model_fixed(data, cov, n, z, cosmoidx, Mono_Emu, Quad_Emu, n_bar, fixed_value, param_idx)
-    ln10As = cosmo[cosmoidx,4] # want to eventually make these into priors as well
-    ns     = cosmo[cosmoidx,5]
-    h      = cosmo[cosmoidx,3]
-    ωb     = cosmo[cosmoidx,1]
-    ωc     = cosmo[cosmoidx,2]
-    w0     = cosmo[cosmoidx,6]
-    wa     = cosmo[cosmoidx,7]
-    Mν     = 0.06
+indices = [3:20;33:50] # unsure why these indices are the way they are?
+cov_20 = cov_20[indices,indices];
+cosmoidx = 1; # using abacus c000 cosmology, just for example
+datavec4test = theory(θ, n, z, Mono_Emu, Quad_Emu, n_bar);
 
-    # Free parameters except the one being profiled
-    b1     ~ Uniform(0., 12.)
-    b2     ~ Uniform(-24., 24.)
-    b3     ~ Uniform(-90., 90.)        
-    b4     ~ Uniform(-24., 24.)
-    cct    ~ Uniform(-36., 36.)
-    cr1    ~ Uniform(-72., 72.)
-    cr2    = 0
-    cϵ0    ~ Uniform(-24., 24.)
-    cϵ1    = 0
-    cϵ2    ~ Uniform(-72., 72.)
 
+Gamma = sqrt(cov_20)
+iGamma = inv(Gamma)
+D = iGamma * datavec4test
+
+@model function model_fixed(D, iGamma, n, z, cosmoidx, Mono_Emu, Quad_Emu, n_bar, fixed_value, param_idx)
+    ln10As ~ Uniform(2.5, 3.3) #cosmo[cosmoidx,4]
+    ns ~ Uniform(0.7, 1.1) #cosmo[cosmoidx,5]
+    h ~ Uniform(0.6, 0.8) #cosmo[cosmoidx,3]
+    ωb ~ Uniform(0.02, 0.025) #cosmo[cosmoidx,1]
+    ωc ~ Uniform(0.085, 0.2) #cosmo[cosmoidx,2]
+    w0 = cosmo[cosmoidx,6] #~ Uniform(-2, -0.5)   # for now varies all the lcdm parameters but fixes the parameters beyond that
+    wa = cosmo[cosmoidx,7] #~ Uniform(-1.5, 1.5)
+    Mν = 0.06 #~ Uniform(7.7e-5, 1)
+    b1 ~ Uniform(0., 4.)
+    b2 ~ Uniform(-4., 4.)
+    b3 ~ Normal(0., 10.)        
+    b4 ~ Normal(0., 2.)
+    cct ~ Normal(0., 4.)
+    cr1 ~ Normal(0., 8.)
+    cr2 = 0
+    cϵ0 ~ Normal(0., 2.)
+    cϵ1 = 0
+    cϵ2 ~ Normal(0., 4.)
     # Fix the parameter at param_idx to fixed_value
     param_list = [b1, b2, b3, b4, cct, cr1, cr2, cϵ0, cϵ1, cϵ2]
-    param_list[param_idx] = fixed_value
-
     θ = [ln10As, ns, h, ωb, ωc, Mν, w0, wa, param_list...]
-
-    prediction = theory(θ, n, z, Mono_Emu, Quad_Emu, n_bar)
-
-    data ~ MvNormal(prediction, cov)
+    θ[param_idx] = fixed_value
+    Prediction = iGamma * theory(θ, n, z, Mono_Emu, Quad_Emu, n_bar)
+    D ~ MvNormal(Prediction, I)
     return nothing
 end
 
-function run_optimize(N,model)
+function run_optimize(N, model, mle_or_map)
     # Initialize variables to track the best fit
     max_lp = -Inf
     best_fit = nothing
-
-    for i in 1:N
-        # Your model fitting here, replace `model_20` and `MAP()` with your actual model and prior
-        current_fit = optimize(model, MLE(), Optim.Options(iterations=10000, allow_f_increases=true)) #if you change MLE() to MAP(), it will look for the maximum a posterior rather than the maximum likelihood
-
-        # Check if the current fit's lp is the largest we've seen
-        if current_fit.lp > max_lp
-            max_lp = current_fit.lp
-            best_fit = current_fit
+    if mle_or_map == "MLE"
+        for i in 1:N
+            # Your model fitting here, replace `model_20` and `MAP()` with your actual model and prior
+            current_fit = optimize(model, MLE(), Optim.Options(iterations=10000, allow_f_increases=true))
+            # Check if the current fit's lp is the largest we've seen
+            if current_fit.lp > max_lp
+                max_lp = current_fit.lp
+                best_fit = current_fit
+            end
         end
+        return best_fit
+    elseif mle_or_map == "MAP"
+        for i in 1:N
+            # Your model fitting here, replace `model_20` and `MAP()` with your actual model and prior
+            current_fit = optimize(model, MAP(), Optim.Options(iterations=10000, allow_f_increases=true))
+            # Check if the current fit's lp is the largest we've seen
+            if current_fit.lp > max_lp
+                max_lp = current_fit.lp
+                best_fit = current_fit
+            end
+        end
+        return best_fit
     end
-    return best_fit
 end;
 
 
-function compute_profile_likelihood(param_idx, param_values, data, cov, n, z, cosmoidx, Mono_Emu, Quad_Emu, n_bar)
+function compute_profile_likelihood(param_idx, param_values, D, iGamma, n, z, cosmoidx, Mono_Emu, Quad_Emu, n_bar, mle_or_map)
     # param_idx: Index of the parameter to be analyzed (e.g., 1 for b1, 2 for b2, etc.)
     # param_values: Vector of values for the parameter to be analyzed
     # Other arguments are required inputs for the modified model
 
     bins = length(param_values)
-#    # Define helper function
- #   function compute_likelihood(fixed_value)
- #       fit_result = run_optimize(5, model_fixed(data, cov, n, z, cosmoidx, Mono_Emu, Quad_Emu, n_bar, fixed_value, param_idx))
- #       return fit_result.lp
-  #  end
-  #  # Parallelize computation using pmap
-  #  profile_likelihood = pmap(compute_likelihood, param_values)
     profile_likelihood = Vector{Float64}(undef, bins)
-    param_values2 = Vector{Float64}(undef, bins)
 
     # Loop over each value to evaluate the profile likelihood
-    for i in 1:bins
-        fixed_value = param_values[i]
-
-        # Fit the modified model
-        fit_result = run_optimize(8, model_fixed(data, cov, n, z, cosmoidx, Mono_Emu, Quad_Emu, n_bar, fixed_value, param_idx))##### changed from 5 to 8
-     #   println(fit_result, "\n")#############################
-     #   println(fit_result.lp, "\n\n")###########################
-        println(typeof(fit_result), typeof(fit_result.lp), "\n\n\n")##############################
-        param_values2[i] = fit_result[2]######################################################
-       # println(fit_result.value, "\n\n")
-        # Store the log-posterior value (chi2) for the current fixed parameter value
-        profile_likelihood[i] = fit_result.lp
-    end
-
-    return param_values, profile_likelihood, param_values2#####################################################
+    if mle_or_map == "MLE"
+        for i in 1:bins
+            fixed_value = param_values[i]
+            # Fit the modified model
+            fit_result = run_optimize(15, model_fixed(D, iGamma, n, z, cosmoidx, Mono_Emu, Quad_Emu, n_bar, fixed_value, param_idx), "MLE")
+            # Store the log-posterior value (chi2) for the current fixed parameter value
+            profile_likelihood[i] = fit_result.lp
+        end
+        return param_values, profile_likelihood
+    elseif mle_or_map == "MAP"
+        for i in 1:bins
+            fixed_value = param_values[i]
+            # Fit the modified model
+            fit_result = run_optimize(15, model_fixed(D, iGamma, n, z, cosmoidx, Mono_Emu, Quad_Emu, n_bar, fixed_value, param_idx), "MAP")
+            # Store the log-posterior value (chi2) for the current fixed parameter value
+            profile_likelihood[i] = fit_result.lp
+        end
+        return param_values, profile_likelihood
+    end  
 end;
 
-param_idx = 1#param_idx = 1  # For b1
-param_values=collect(1.9:0.01:2.3);#param_values = collect(1.7:0.01:2.5);#collect(1.7:0.01:2.5);  # Values for b1
-println("defined more functions and parameters") #################################
+param_idx = 1 
+param_values = collect(2.8:0.01:3.3)#collect(1.7:0.02:2.5);#param_values = collect(1.7:0.01:2.5);#collect(1.7:0.01:2.5);  # Values for b1
 
-benchmark_result = @benchmark run_optimize(8, model_fixed(datavec4test, cov_20, n, z, cosmoidx, Mono_Emu, Quad_Emu, n_bar, 2, 1))
-println(benchmark_result)#####################################
+#benchmark_result = @benchmark run_optimize(8, model_fixed(datavec4test, cov_20, n, z, cosmoidx, Mono_Emu, Quad_Emu, n_bar, 2, 1))
 
-param_values, profile_likelihood, param_values2 = compute_profile_likelihood(param_idx, param_values, datavec4test, cov_20, n, z, cosmoidx, Mono_Emu, Quad_Emu, n_bar)###################################################
-println("finished more calculations")####################################
+param_values, profile_likelihood_mle = compute_profile_likelihood(param_idx, param_values, datavec4test, cov_20, n, z, cosmoidx, Mono_Emu, Quad_Emu, n_bar, "MLE")
+param_values, profile_likelihood_map = compute_profile_likelihood(param_idx, param_values, datavec4test, cov_20, n, z, cosmoidx, Mono_Emu, Quad_Emu, n_bar, "MAP")
 
 using Plots
 
-delta_chi2 = -(profile_likelihood .- maximum(profile_likelihood))
-#plot(param_values, delta_chi2, xlabel="Parameter Values", ylabel="Δχ²", title="Profile Likelihood", legend=false)
-plot(param_values2, delta_chi2, xlabel="Parameter Values", ylabel="Δχ²", title="Profile Likelihood", legend=false, seriestype=:scatter)####################################
+delta_chi2_mle = -(profile_likelihood_mle .- maximum(profile_likelihood_mle))
+delta_chi2_map = -(profile_likelihood_map .- maximum(profile_likelihood_map))
+plot(param_values, delta_chi2_mle, xlabel="Parameter Values", ylabel="Δχ²", title="Profile Likelihood", legend=false, seriestype=:scatter, color=:blue)
+plot!(param_values, delta_chi2_map, xlabel="Parameter Values", ylabel="Δχ²", title="Profile Likelihood", legend=false, seriestype=:scatter, color=:red)
 savefig("/home/jgmorawe/projects/rrg-wperciva/jgmorawe/results/profile_likelihood_test.png")
-println("finished plotting")####################################
