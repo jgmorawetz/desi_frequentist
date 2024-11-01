@@ -156,9 +156,9 @@ datavec4test = theory(θ, n, z, Mono_Emu, Quad_Emu, n_bar);
 Gamma = sqrt(cov_20)
 iGamma = inv(Gamma)
 D = iGamma * datavec4test
-@model function model_fixed(D, iGamma, n, z, cosmoidx, Mono_Emu, Quad_Emu, n_bar, fixed_value, param_idx)
+@model function model_fixed(D, iGamma, n, z, cosmoidx, Mono_Emu, Quad_Emu, n_bar, fixed_value, param_idx)#D, iGamma, n, z, cosmoidx, Mono_Emu, Quad_Emu, n_bar, fixed_value, param_idx)
     ln10As ~ Uniform(2.5, 3.3) # sets priors to be the bounds of the emulator for cosmological parameters
-    ns ~ Uniform(0.7, 1.1) 
+    ns ~ Uniform(0.7, 1.1) #cosmo[cosmoidx, 5]
     h ~ Uniform(0.6, 0.8) 
     ωb ~ Uniform(0.02, 0.025) 
     ωc ~ Uniform(0.085, 0.2) 
@@ -178,8 +178,10 @@ D = iGamma * datavec4test
     param_list = [b1, b2, b3, b4, cct, cr1, cr2, cϵ0, cϵ1, cϵ2]
     θ = [ln10As, ns, h, ωb, ωc, Mν, w0, wa, param_list...]
     θ[param_idx] = fixed_value
+    #Prediction = theory(θ, n, z, Mono_Emu, Quad_Emu, n_bar)
     Prediction = iGamma * theory(θ, n, z, Mono_Emu, Quad_Emu, n_bar)
     D ~ MvNormal(Prediction, I)
+    #data ~ MvNormal(Prediction, cov)
     return nothing
 end
 
@@ -191,7 +193,7 @@ function run_optimize(N, model, mle_or_map)
     if mle_or_map == "MLE"
         for i in 1:N
             # Your model fitting here, replace `model_20` and `MAP()` with your actual model and prior
-            current_fit = optimize(model, MLE(), Optim.Options(iterations=10000, allow_f_increases=true))
+            current_fit = optimize(model, MLE(), Optim.Options(iterations=40000, allow_f_increases=true))
             # Check if the current fit's lp is the largest we've seen
             if current_fit.lp > max_lp
                 max_lp = current_fit.lp
@@ -202,7 +204,7 @@ function run_optimize(N, model, mle_or_map)
     elseif mle_or_map == "MAP"
         for i in 1:N
             # Your model fitting here, replace `model_20` and `MAP()` with your actual model and prior
-            current_fit = optimize(model, MAP(), Optim.Options(iterations=10000, allow_f_increases=true))
+            current_fit = optimize(model, MAP(), Optim.Options(iterations=40000, allow_f_increases=true))
             # Check if the current fit's lp is the largest we've seen
             if current_fit.lp > max_lp
                 max_lp = current_fit.lp
@@ -214,7 +216,7 @@ function run_optimize(N, model, mle_or_map)
 end;
 
 
-function compute_profile_likelihood(param_idx, param_values, D, iGamma, n, z, cosmoidx, Mono_Emu, Quad_Emu, n_bar, mle_or_map)
+function compute_profile_likelihood(param_idx, param_values, D, iGamma, n, z, cosmoidx, Mono_Emu, Quad_Emu, n_bar, mle_or_map)#param_idx, param_values, D, iGamma, n, z, cosmoidx, Mono_Emu, Quad_Emu, n_bar, mle_or_map)
     # param_idx: Index of the parameter to be analyzed (e.g., 1 for b1, 2 for b2, etc.)
     # param_values: Vector of values for the parameter to be analyzed
     # Other arguments are required inputs for the modified model
@@ -225,18 +227,20 @@ function compute_profile_likelihood(param_idx, param_values, D, iGamma, n, z, co
     # Loop over each value to evaluate the profile likelihood
     if mle_or_map == "MLE"
         for i in 1:bins
+            @info "Optimization number" i
             fixed_value = param_values[i]
             # Fit the modified model
-            fit_result = run_optimize(15, model_fixed(D, iGamma, n, z, cosmoidx, Mono_Emu, Quad_Emu, n_bar, fixed_value, param_idx), "MLE")
+            fit_result = run_optimize(15, model_fixed(D, iGamma, n, z, cosmoidx, Mono_Emu, Quad_Emu, n_bar, fixed_value, param_idx), "MLE")#D, iGamma, n, z, cosmoidx, Mono_Emu, Quad_Emu, n_bar, fixed_value, param_idx), "MLE")
             # Store the log-posterior value (chi2) for the current fixed parameter value
             profile_likelihood[i] = fit_result.lp
         end
         return param_values, profile_likelihood
     elseif mle_or_map == "MAP"
         for i in 1:bins
+            @info "Optimization number" i
             fixed_value = param_values[i]
             # Fit the modified model
-            fit_result = run_optimize(15, model_fixed(D, iGamma, n, z, cosmoidx, Mono_Emu, Quad_Emu, n_bar, fixed_value, param_idx), "MAP")
+            fit_result = run_optimize(15, model_fixed(D, iGamma, n, z, cosmoidx, Mono_Emu, Quad_Emu, n_bar, fixed_value, param_idx), "MAP")#D, iGamma, n, z, cosmoidx, Mono_Emu, Quad_Emu, n_bar, fixed_value, param_idx), "MAP")
             # Store the log-posterior value (chi2) for the current fixed parameter value
             profile_likelihood[i] = fit_result.lp
         end
@@ -249,8 +253,11 @@ param_values = collect(2.8:0.025:3.3)#collect(1.7:0.02:2.5);#param_values = coll
 
 #benchmark_result = @benchmark run_optimize(8, model_fixed(datavec4test, cov_20, n, z, cosmoidx, Mono_Emu, Quad_Emu, n_bar, 2, 1))
 
-param_values, profile_likelihood_mle = compute_profile_likelihood(param_idx, param_values, datavec4test, cov_20, n, z, cosmoidx, Mono_Emu, Quad_Emu, n_bar, "MLE")
-param_values, profile_likelihood_map = compute_profile_likelihood(param_idx, param_values, datavec4test, cov_20, n, z, cosmoidx, Mono_Emu, Quad_Emu, n_bar, "MAP")
+#param_values, profile_likelihood_mle = compute_profile_likelihood(param_idx, param_values, datavec4test, cov_20, n, z, cosmoidx, Mono_Emu, Quad_Emu, n_bar, "MLE")
+#param_values, profile_likelihood_map = compute_profile_likelihood(param_idx, param_values, datavec4test, cov_20, n, z, cosmoidx, Mono_Emu, Quad_Emu, n_bar, "MAP")
+
+@time param_values, profile_likelihood_mle = compute_profile_likelihood(param_idx, param_values, D, iGamma, n, z, cosmoidx, Mono_Emu, Quad_Emu, n_bar, "MLE")
+@time param_values, profile_likelihood_map = compute_profile_likelihood(param_idx, param_values, D, iGamma, n, z, cosmoidx, Mono_Emu, Quad_Emu, n_bar, "MAP")
 
 using Plots
 
