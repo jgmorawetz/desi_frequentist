@@ -156,35 +156,54 @@ datavec4test = theory(θ, n, z, Mono_Emu, Quad_Emu, n_bar);
 Gamma = sqrt(cov_20)
 iGamma = inv(Gamma)
 D = iGamma * datavec4test
-@model function model_fixed(D, iGamma, n, z, cosmoidx, Mono_Emu, Quad_Emu, n_bar, fixed_value, param_idx)#D, iGamma, n, z, cosmoidx, Mono_Emu, Quad_Emu, n_bar, fixed_value, param_idx)
-    ln10As ~ Uniform(2.5, 3.3) # sets priors to be the bounds of the emulator for cosmological parameters
-    ns ~ Uniform(0.7, 1.1) #cosmo[cosmoidx, 5]
-    h ~ Uniform(0.6, 0.8) 
-    ωb ~ Uniform(0.02, 0.025) 
-    ωc ~ Uniform(0.085, 0.2) 
-    w0 = cosmo[cosmoidx,6] # for now varies all the lcdm parameters but fixes the parameters beyond that
-    wa = cosmo[cosmoidx,7]
-    Mν = 0.06
-    b1 ~ Uniform(0., 4.) # currently using the EFT priors from Hanyu's paper
-    b2 ~ Uniform(-4., 4.)
-    b3 ~ Normal(0., 10.)        
-    b4 ~ Normal(0., 2.)
-    cct ~ Normal(0., 4.)
-    cr1 ~ Normal(0., 8.)
-    cr2 = 0 # setting cr2 and ce1 to 0 since they are degenerate with others?
-    cϵ0 ~ Normal(0., 2.)
-    cϵ1 = 0
-    cϵ2 ~ Normal(0., 4.)
+@model function model_fixed(D, iGamma, n, z, cosmoidx, Mono_Emu, Quad_Emu, n_bar, fixed_value, param_idx, mle_or_map)
+    # uses a BBN prior since omega baryon is poorly constrained otherwise (mu=0.02237, sigma=0.0005)
+    if mle_or_map == "MLE"
+        ln10As ~ Uniform(2.5, 3.3)
+        ns ~ Uniform(0.7, 1.1)
+        h ~ Uniform(0.6, 0.8)
+        ωb ~ Normal(0.02237, 0.0005) # BBN prior
+        ωc ~ Uniform(0.085, 0.2) 
+        w0 = cosmo[cosmoidx,6] # only LCDM parameters vary
+        wa = cosmo[cosmoidx,7]
+        Mν = 0.06
+        b1 ~ Uniform(0., 12.)
+        b2 ~ Uniform(-24., 24.)
+        b3 ~ Uniform(-90., 90.)        
+        b4 ~ Uniform(-24., 24.)
+        cct ~ Uniform(-36., 36.)
+        cr1 ~ Uniform(-72., 72.)
+        cr2 = 0 # setting cr2 and ce1 to 0 since they are degenerate with others
+        cϵ0 ~ Uniform(-24., 24.)
+        cϵ1 = 0
+        cϵ2 ~ Uniform(-72., 72.)
+    elseif mle_or_map == "MAP"
+        ln10As ~ Uniform(2.5, 3.3)
+        ns ~ Uniform(0.7, 1.1)
+        h ~ Uniform(0.6, 0.8) 
+        ωb ~ Normal(0.02237, 0.0005) # BBN prior
+        ωc ~ Uniform(0.085, 0.2)
+        w0 = cosmo[cosmoidx,6] 
+        wa = cosmo[cosmoidx,7]
+        Mν = 0.06
+        b1 ~ Uniform(0., 4.) 
+        b2 ~ Uniform(-4., 4.)
+        b3 ~ Normal(0., 10.)        
+        b4 ~ Normal(0., 2.)
+        cct ~ Normal(0., 4.)
+        cr1 ~ Normal(0., 8.)
+        cr2 = 0
+        cϵ0 ~ Normal(0., 2.)
+        cϵ1 = 0
+        cϵ2 ~ Normal(0., 4.)
+    end
     param_list = [b1, b2, b3, b4, cct, cr1, cr2, cϵ0, cϵ1, cϵ2]
     θ = [ln10As, ns, h, ωb, ωc, Mν, w0, wa, param_list...]
     θ[param_idx] = fixed_value
-    #Prediction = theory(θ, n, z, Mono_Emu, Quad_Emu, n_bar)
     Prediction = iGamma * theory(θ, n, z, Mono_Emu, Quad_Emu, n_bar)
     D ~ MvNormal(Prediction, I)
-    #data ~ MvNormal(Prediction, cov)
     return nothing
 end
-
 
 
 function run_optimize(N, model, mle_or_map)
@@ -193,7 +212,7 @@ function run_optimize(N, model, mle_or_map)
     if mle_or_map == "MLE"
         for i in 1:N
             # Your model fitting here, replace `model_20` and `MAP()` with your actual model and prior
-            current_fit = optimize(model, MLE(), Optim.Options(iterations=40000, allow_f_increases=true))
+            current_fit = optimize(model, MAP(), Optim.Options(iterations=10000, allow_f_increases=true))
             # Check if the current fit's lp is the largest we've seen
             if current_fit.lp > max_lp
                 max_lp = current_fit.lp
@@ -204,7 +223,7 @@ function run_optimize(N, model, mle_or_map)
     elseif mle_or_map == "MAP"
         for i in 1:N
             # Your model fitting here, replace `model_20` and `MAP()` with your actual model and prior
-            current_fit = optimize(model, MAP(), Optim.Options(iterations=40000, allow_f_increases=true))
+            current_fit = optimize(model, MAP(), Optim.Options(iterations=10000, allow_f_increases=true))
             # Check if the current fit's lp is the largest we've seen
             if current_fit.lp > max_lp
                 max_lp = current_fit.lp
@@ -216,21 +235,17 @@ function run_optimize(N, model, mle_or_map)
 end;
 
 
-function compute_profile_likelihood(param_idx, param_values, D, iGamma, n, z, cosmoidx, Mono_Emu, Quad_Emu, n_bar, mle_or_map)#param_idx, param_values, D, iGamma, n, z, cosmoidx, Mono_Emu, Quad_Emu, n_bar, mle_or_map)
-    # param_idx: Index of the parameter to be analyzed (e.g., 1 for b1, 2 for b2, etc.)
-    # param_values: Vector of values for the parameter to be analyzed
-    # Other arguments are required inputs for the modified model
-
+function compute_profile_likelihood(param_idx, param_values, D, iGamma, n, z, cosmoidx, Mono_Emu, Quad_Emu, n_bar, mle_or_map)
     bins = length(param_values)
     profile_likelihood = Vector{Float64}(undef, bins)
-
+    n_runs = 20
     # Loop over each value to evaluate the profile likelihood
     if mle_or_map == "MLE"
         for i in 1:bins
             @info "Optimization number" i
             fixed_value = param_values[i]
             # Fit the modified model
-            fit_result = run_optimize(15, model_fixed(D, iGamma, n, z, cosmoidx, Mono_Emu, Quad_Emu, n_bar, fixed_value, param_idx), "MLE")#D, iGamma, n, z, cosmoidx, Mono_Emu, Quad_Emu, n_bar, fixed_value, param_idx), "MLE")
+            fit_result = run_optimize(n_runs, model_fixed(D, iGamma, n, z, cosmoidx, Mono_Emu, Quad_Emu, n_bar, fixed_value, param_idx, "MLE"), "MLE")
             # Store the log-posterior value (chi2) for the current fixed parameter value
             profile_likelihood[i] = fit_result.lp
         end
@@ -240,7 +255,7 @@ function compute_profile_likelihood(param_idx, param_values, D, iGamma, n, z, co
             @info "Optimization number" i
             fixed_value = param_values[i]
             # Fit the modified model
-            fit_result = run_optimize(15, model_fixed(D, iGamma, n, z, cosmoidx, Mono_Emu, Quad_Emu, n_bar, fixed_value, param_idx), "MAP")#D, iGamma, n, z, cosmoidx, Mono_Emu, Quad_Emu, n_bar, fixed_value, param_idx), "MAP")
+            fit_result = run_optimize(n_runs, model_fixed(D, iGamma, n, z, cosmoidx, Mono_Emu, Quad_Emu, n_bar, fixed_value, param_idx, "MAP"), "MAP")
             # Store the log-posterior value (chi2) for the current fixed parameter value
             profile_likelihood[i] = fit_result.lp
         end
@@ -248,13 +263,28 @@ function compute_profile_likelihood(param_idx, param_values, D, iGamma, n, z, co
     end  
 end;
 
-param_idx = 1 
-param_values = collect(2.8:0.025:3.3)#collect(1.7:0.02:2.5);#param_values = collect(1.7:0.01:2.5);#collect(1.7:0.01:2.5);  # Values for b1
+# Sets the parameter index to generate profile likelihood for (only one to vary between scripts)
+param_idx = 1
 
-#benchmark_result = @benchmark run_optimize(8, model_fixed(datavec4test, cov_20, n, z, cosmoidx, Mono_Emu, Quad_Emu, n_bar, 2, 1))
+if param_idx == 1
+    param_values = collect(2.5:0.1:3.3) #######
+    name = "ln10As"
+elseif param_idx == 2
+    param_values = collect(0.7:0.1:1.1) ########
+    name = "ns"
+elseif param_idx == 3
+    param_values = collect(0.6:0.05:0.8) ##########
+    name = "h"
+elseif param_idx == 4
+    param_values = collect(0.02037:0.00025:0.02437) ##########
+    name = "omegab"
+elseif param_idx == 5
+    param_values = collect(0.085:0.025:0.2) ############
+    name = "omegac"
+elseif param_idx == 9
+    param_values = collect(0:0.2:4)############ 
+    name = "b1"
 
-#param_values, profile_likelihood_mle = compute_profile_likelihood(param_idx, param_values, datavec4test, cov_20, n, z, cosmoidx, Mono_Emu, Quad_Emu, n_bar, "MLE")
-#param_values, profile_likelihood_map = compute_profile_likelihood(param_idx, param_values, datavec4test, cov_20, n, z, cosmoidx, Mono_Emu, Quad_Emu, n_bar, "MAP")
 
 @time param_values, profile_likelihood_mle = compute_profile_likelihood(param_idx, param_values, D, iGamma, n, z, cosmoidx, Mono_Emu, Quad_Emu, n_bar, "MLE")
 @time param_values, profile_likelihood_map = compute_profile_likelihood(param_idx, param_values, D, iGamma, n, z, cosmoidx, Mono_Emu, Quad_Emu, n_bar, "MAP")
@@ -263,6 +293,6 @@ using Plots
 
 delta_chi2_mle = -(profile_likelihood_mle .- maximum(profile_likelihood_mle))
 delta_chi2_map = -(profile_likelihood_map .- maximum(profile_likelihood_map))
-plot(param_values, delta_chi2_mle, xlabel="Parameter Values", ylabel="Δχ²", title="Profile Likelihood", legend=false, seriestype=:scatter, color=:blue)
-plot!(param_values, delta_chi2_map, xlabel="Parameter Values", ylabel="Δχ²", title="Profile Likelihood", legend=false, seriestype=:scatter, color=:red)
-savefig("/home/jgmorawe/projects/rrg-wperciva/jgmorawe/results/profile_likelihood_test.png")
+npzwrite("/home/jgmorawe/FrequentistExample/$(name)_synthetic_BBNprior_paramvalues.npy", param_values)
+npzwrite("/home/jgmorawe/FrequentistExample/$(name)_MLE_synthetic_BBNprior_deltachisquared.npy", delta_chi2_mle)
+npzwrite("/home/jgmorawe/FrequentistExample/$(name)_MAP_synthetic_BBNprior_deltachisquared.npy", delta_chi2_map)
