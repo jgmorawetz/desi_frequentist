@@ -1,14 +1,14 @@
 
 using Pkg
-Pkg.activate("/global/homes/j/jgmorawe/FrequentistExample")
+Pkg.activate("/home/jgmorawe/FrequentistExample1")#"/global/homes/j/jgmorawe/FrequentistExample")
 using ArgParse
 using Distributed
 
 # The number of parallel processes to run for each profile likelihood
-n_bins = 3#########
+n_bins = 32
 addprocs(n_bins)
 # The number of independent minimization runs to perform to reach global minimum
-n_runs = 1
+n_runs = 10
 
 @everywhere begin
     using Statistics
@@ -316,7 +316,7 @@ end
         sigv_used ->
     """
     # Ranges for each of the cosmological parameters (narrow from the emulator itself to speed up computation)
-    ln10As_range = [2.7, 3.3]; ns_range = [0.8, 1.1]; H0_range = [67, 74]; ωb_range = [0.02, 0.025]; ωc_range = [0.09, 0.15]; w0_range = [-1.6, 0.4]; wa_range = [-3, 1.64]
+    ln10As_range = [2.0, 3.5]; ns_range = [0.8, 1.1]; H0_range = [50, 80]; ωb_range = [0.02, 0.025]; ωc_range = [0.09, 0.25]; w0_range = [-2, 0.5]; wa_range = [-3, 1.64]
     # emulator ranges are (2, 3.5), (0.8, 1.1), (50, 80), (0.02, 0.025), (0.09, 0.25), (-2, 0.5), (-3, 1.64)
 
     # Priors to apply (sometimes): ns10 and BBN
@@ -462,7 +462,7 @@ end
         eft_params = [b1e, b2e, b3e, bse, alpha0e, alpha2e, alpha4e, alpha6e, st0e, st2e, st4e] # collects together final EFT parameter vector
         theta_FS = vcat(cosmo_params, eft_params)
         FS_BAO_prediction = wmat_used[tracer] * theory_FS(theta_FS, emus_FS[tracer], kin_used[tracer])
-        println("\n", cosmo_params, "\n")#######################################################################################################################
+        #println("\n", cosmo_params, "\n")#######################################################################################################################
         if dataset in ["FS", "FS+CMB"] # does not add BAO vector unless BAO is being fit too
             nothing
         elseif dataset in ["FS+BAO", "FS+BAO+CMB", "FS+BAO+CMB+SN"]
@@ -515,8 +515,33 @@ end
     end
     bestfit_values_array = SharedArray{Float64}((ncosmo-1)+7*size(tracer_vector)[1], n_runs)
     # Performs many independent runs in order to reach global minima
+    LCDM_preconditioning_matrix = [1/0.1, 1/0.01, 1/1, 1/0.0001, 1/0.01, 1/0.1, 1/1, 1/1, 1/10, 1/10, 1/1, 1/1, 1/0.1, 1/1, 1/1, 1/10, 1/10, 1/1, 1/1, 1/0.1, 1/1, 1/1, 1/10, 1/10, 1/1, 1/1, 1/0.1, 1/1, 1/1, 1/10, 1/10, 1/1, 1/1, 1/0.1, 1/1, 1/1, 1/10, 1/10, 1/1, 1/1, 1/0.1, 1/1, 1/1, 1/10, 1/10, 1/1, 1/1]
+    w0waCDM_preconditioning_matrix = [1/0.1, 1/0.01, 1/1, 1/0.0001, 1/0.01, 1/1, 1/1, 1/0.1, 1/1, 1/1, 1/10, 1/10, 1/1, 1/1, 1/0.1, 1/1, 1/1, 1/10, 1/10, 1/1, 1/1, 1/0.1, 1/1, 1/1, 1/10, 1/10, 1/1, 1/1, 1/0.1, 1/1, 1/1, 1/10, 1/10, 1/1, 1/1, 1/0.1, 1/1, 1/1, 1/10, 1/10, 1/1, 1/1, 1/0.1, 1/1, 1/1, 1/10, 1/10, 1/1, 1/1]
+    if variation == "LCDM"
+        preconditioning_matrix = LCDM_preconditioning_matrix
+        if param == "ln10As"
+            preconditioning_matrix = Diagonal([preconditioning_matrix[i] for i in 1:length(preconditioning_matrix) if i != 1])
+        elseif param == "H0"
+            preconditioning_matrix = Diagonal([preconditioning_matrix[i] for i in 1:length(preconditioning_matrix) if i != 3])
+        elseif param == "Om"
+            preconditioning_matrix = Diagonal([preconditioning_matrix[i] for i in 1:length(preconditioning_matrix) if i != 5])
+        end
+    elseif variation == "w0waCDM"
+        preconditioning_matrix = w0waCDM_preconditioning_matrix
+        if param == "ln10As"
+            preconditioning_matrix = Diagonal([preconditioning_matrix[i] for i in 1:length(preconditioning_matrix) if i != 1])
+        elseif param == "H0"
+            preconditioning_matrix = Diagonal([preconditioning_matrix[i] for i in 1:length(preconditioning_matrix) if i != 3])
+        elseif param == "Om"
+            preconditioning_matrix = Diagonal([preconditioning_matrix[i] for i in 1:length(preconditioning_matrix) if i != 5])
+        elseif param == "w0"
+            preconditioning_matrix = Diagonal([preconditioning_matrix[i] for i in 1:length(preconditioning_matrix) if i != 6])
+        elseif param == "wa"
+            preconditioning_matrix = Diagonal([preconditioning_matrix[i] for i in 1:length(preconditioning_matrix) if i != 7])
+        end
+    end
     for i in 1:n_runs
-        fit_result = maximum_likelihood(fit_model, LBFGS(m=100)) # add init_values and preconditioning if needed!
+        fit_result = maximum_likelihood(fit_model, LBFGS(m=50, P=preconditioning_matrix)) # add init_values and preconditioning if needed!
         profile_values_array[i] = fit_result.lp
         bestfit_values_array[:, i] = fit_result.values.array
     end
