@@ -90,7 +90,7 @@ function main()
     variation = parsed_args["variation"]
     tracer_list = parsed_args["tracer_list"]
     tracer_vector = Vector{String}(split(tracer_list, ","))
-    save_path = "/global/homes/j/jgmorawe/FrequentistExample1/profile_likelihood_results/$(param)_$(dataset)_$(variation)_$(tracer_list)_hopefully_final"############################################
+    save_path = "/global/homes/j/jgmorawe/FrequentistExample1/FrequentistExample1/profile_likelihood_results/$(param)_$(dataset)_$(variation)_$(tracer_list)_narrower_range"############################################
     lower = parsed_args["lower"]
     upper = parsed_args["upper"]
     desi_data_dir = parsed_args["desi_data_dir"]
@@ -228,6 +228,21 @@ function main()
                     "ELG2" => 150*2.1^(1/2)/70, 
                     "QSO" => 150*(10)^(0.7/3)*(2.4)^(1/2)/70)
 
+    cosmo_ranges = Dict("ln10As" => [2.5, 3.5], "ns" => [0.9649, 0.042], "H0" => [60, 80], "ωb" => [0.02218, 0.00055], 
+                    "ωc" => [0.09, 0.2], "w0" => [-2, 0.5], "wa" => [-3, 1.64]) # emulator boundaries (range which minimizer is allowed to move)
+    eft_ranges = Dict("b1p" => [0, 3], "b2p" =>  [-10, 5], "bsp" => [-10, 10], "alpha0p" => [-100, 400], "alpha2p" => [-400, 200],
+                    "st0p" => [-40, 20], "st2p" => [-50, 50]) # boundaries for EFT parameters (range which minimizer is allowed to move)
+    #cosmo_ranges = Dict("ln10As" => [2.0, 3.5], "ns" => [0.9649, 0.042], "H0" => [50, 80], "ωb" => [0.02218, 0.00055], 
+    #                    "ωc" => [0.09, 0.25], "w0" => [-2, 0.5], "wa" => [-3, 1.64]) # emulator boundaries (range which minimizer is allowed to move)
+    #eft_ranges = Dict("b1p" => [0, 6], "b2p" =>  [-15, 5], "bsp" => [-10, 15], "alpha0p" => [-100, 400], "alpha2p" => [-800, 200],
+    #                    "st0p" => [-80, 80], "st2p" => [-200, 200]) # boundaries for EFT parameters (range which minimizer is allowed to move)
+    init_values_ranges = Dict("ln10As" => [2.5, 3.5], "ns" => [0.9649, 0.042], "H0" => [65, 75], "ωb" => [0.02218, 0.00055], 
+                              "ωc" => [0.1, 0.15], "w0" => [-1.5, 0], "wa" => [-2, 1],
+                              "b1p" => [0, 2], "b2p" =>  [-5, 5], "bsp" => [-5, 10], "alpha0p" => [-50, 100], "alpha2p" => [-150, 150],
+                              "st0p" => [-50, 50], "st2p" => [-50, 50]) # range of initial random guesses (narrower than emulator range to have fewer bad runs)
+    steps = Dict("ln10As" => 0.2, "ns" => 0.05, "H0" => 2, "ωb" => 0.001, "ωc" => 0.01, "w0" => 0.5, "wa" => 1,
+                 "b1p" => 0.1, "b2p" => 1, "bsp" => 1, "alpha0p" => 20, "alpha2p" => 50, "st0p" => 5, "st2p" => 5) # preconditioning step sizes
+
     # Distributes the variables among the processes 
     @everywhere n_runs = $n_runs
     @everywhere param = $param
@@ -261,6 +276,11 @@ function main()
     #@everywhere CMB_emus = $CMB_emus
     @everywhere SN_type = $SN_type
 
+    @everywhere cosmo_ranges = $cosmo_ranges
+    @everywhere init_values_ranges = $init_values_ranges
+    @everywhere eft_ranges = $eft_ranges
+    @everywhere steps = $steps
+
     # Specifies the range of parameter values and initiates arrays to store
     param_values = range(lower, stop=upper, length=n_bins)
     profile_values = SharedArray{Float64}(n_bins, n_runs)
@@ -293,7 +313,7 @@ function main()
 
     # Runs the parallel processes and saves results to file
     @sync @distributed for index in 1:length(param_values)
-        @time (profile_values[index, :], bestfit_values[index, :, :]) = run_worker(param_values[index])#param_values[index], param, variation, tracer_vector, SN_type)
+        @time (profile_values[index, :], bestfit_values[index, :, :]) = run_worker(param_values[index])
     end  
     npzwrite(string(save_path, "_param_values.npy"), param_values)
     npzwrite(string(save_path, "_profile_values.npy"), profile_values)
@@ -368,8 +388,6 @@ end
 
 @everywhere @model function model_FS(D_FS_all)
     # Draws cosmological parameters
-    cosmo_ranges = Dict("ln10As" => [2.0, 3.5], "ns" => [0.9649, 0.042], "H0" => [50, 80], "ωb" => [0.02218, 0.00055], 
-                        "ωc" => [0.09, 0.25], "w0" => [-2, 0.5], "wa" => [-3, 1.64])
     ln10As ~ Uniform(cosmo_ranges["ln10As"][1], cosmo_ranges["ln10As"][2])
     ns ~ Truncated(Normal(cosmo_ranges["ns"][1], cosmo_ranges["ns"][2]), 0.8, 1.1)               # might need to adjust if using MAP
     H0 ~ Uniform(cosmo_ranges["H0"][1], cosmo_ranges["H0"][2])
@@ -386,8 +404,6 @@ end
     sigma8_all = Dict("BGS" => fsigma8_info[9], "LRG1" => fsigma8_info[10], "LRG2" => fsigma8_info[11], "LRG3" => fsigma8_info[12], 
                       "ELG2" => fsigma8_info[14], "QSO" => fsigma8_info[15])
     # Draws EFT nuisance parameters
-    eft_ranges = Dict("b1p" => [0, 6], "b2p" =>  [-15, 5], "bsp" => [-10, 15], "alpha0p" => [-100, 400], "alpha2p" => [-800, 200],
-                      "st0p" => [-80, 80], "st2p" => [-200, 200])
     # Iterates through each tracer
     for tracer in tracer_vector
         if tracer == "BGS"
@@ -481,8 +497,6 @@ end
 
 @everywhere @model function model_BAO(D_BAO_all, D_Lya)
     # Draws cosmological parameters
-    cosmo_ranges = Dict("ln10As" => [2.0, 3.5], "ns" => [0.9649, 0.042], "H0" => [50, 80], "ωb" => [0.02218, 0.00055], 
-                        "ωc" => [0.09, 0.25], "w0" => [-2, 0.5], "wa" => [-3, 1.64])
     ln10As ~ Uniform(cosmo_ranges["ln10As"][1], cosmo_ranges["ln10As"][2])
     ns ~ Truncated(Normal(cosmo_ranges["ns"][1], cosmo_ranges["ns"][2]), 0.8, 1.1)               # might need to adjust if using MAP
     H0 ~ Uniform(cosmo_ranges["H0"][1], cosmo_ranges["H0"][2])
@@ -505,8 +519,6 @@ end
 
 @everywhere @model function model_FS_BAO(D_FS_BAO_all, D_Lya)
     # Draws cosmological parameters
-    cosmo_ranges = Dict("ln10As" => [2.0, 3.5], "ns" => [0.9649, 0.042], "H0" => [50, 80], "ωb" => [0.02218, 0.00055], 
-                        "ωc" => [0.09, 0.25], "w0" => [-2, 0.5], "wa" => [-3, 1.64])
     ln10As ~ Uniform(cosmo_ranges["ln10As"][1], cosmo_ranges["ln10As"][2])
     ns ~ Truncated(Normal(cosmo_ranges["ns"][1], cosmo_ranges["ns"][2]), 0.8, 1.1)              # might need to adjust if using MAP
     H0 ~ Uniform(cosmo_ranges["H0"][1], cosmo_ranges["H0"][2])
@@ -523,8 +535,6 @@ end
     sigma8_all = Dict("BGS" => fsigma8_info[9], "LRG1" => fsigma8_info[10], "LRG2" => fsigma8_info[11], "LRG3" => fsigma8_info[12], 
                       "ELG2" => fsigma8_info[14], "QSO" => fsigma8_info[15])
     # Draws EFT nuisance parameters
-    eft_ranges = Dict("b1p" => [0, 6], "b2p" =>  [-15, 5], "bsp" => [-10, 15], "alpha0p" => [-100, 400], "alpha2p" => [-800, 200],
-                      "st0p" => [-80, 80], "st2p" => [-200, 200])
     # Iterates through each tracer
     for tracer in tracer_vector
         if tracer == "BGS"
@@ -985,36 +995,42 @@ end
 @everywhere function run_worker(fixed_value)
     # Runs the worker for a given parameter value in the profile likelihood.
     # (Performs LBFGS minimization of chi-squared).
-    steps = Dict("ln10As" => 0.2, "ns" => 0.05, "H0" => 2, "ωb" => 0.001, "ωc" => 0.01, "w0" => 0.5, "wa" => 1,
-                 "b1p" => 0.1, "b2p" => 1, "bsp" => 1, "alpha0p" => 20, "alpha2p" => 50, "st0p" => 5, "st2p" => 5)
     if dataset == "FS"
         if variation == "LCDM"
             if param == "ln10As"
                 fit_model = model_FS(D_FS_all) | (ln10As=fixed_value, w0=-1, wa=0)
                 preconditioning_entries = [1/steps["ns"], 1/steps["H0"], 1/steps["ωb"], 1/steps["ωc"]]#preconditioning_matrix = Diagonal([1/0.01, 1/2, 1/0.0001, 1/0.01, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1])
+                init_param_labels = ["ns", "H0", "ωb", "ωc"]
             elseif param == "H0"
                 fit_model = model_FS(D_FS_all) | (H0=fixed_value, w0=-1, wa=0)
                 preconditioning_entries = [1/steps["ln10As"], 1/steps["ns"], 1/steps["ωb"], 1/steps["ωc"]]#preconditioning_matrix = Diagonal([1/0.3, 1/0.01, 1/0.0001, 1/0.01, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1])
+                init_param_labels = ["ln10As", "ns", "ωb", "ωc"]
             elseif param == "ωc"
                 fit_model = model_FS(D_FS_all) | (ωc=fixed_value, w0=-1, wa=0)
                 preconditioning_entries = [1/steps["ln10As"], 1/steps["ns"], 1/steps["H0"], 1/steps["ωb"]]#preconditioning_matrix = Diagonal([1/0.3, 1/0.01, 1/2, 1/0.0001, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1])
+                init_param_labels = ["ln10As", "ns", "H0", "ωb"]
             end
         elseif variation == "w0waCDM"
             if param == "ln10As"
                 fit_model = model_FS(D_FS_all) | (ln10As=fixed_value,)
                 preconditioning_entries = [1/steps["ns"], 1/steps["H0"], 1/steps["ωb"], 1/steps["ωc"], 1/steps["w0"], 1/steps["wa"]]# preconditioning_matrix = Diagonal([1/0.01, 1/2, 1/0.0001, 1/0.01, 1/0.5, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1])
+                init_param_labels = ["ns", "H0", "ωb", "ωc", "w0", "wa"]
             elseif param == "H0"
                 fit_model = model_FS(D_FS_all) | (H0=fixed_value,)
                 preconditioning_entries = [1/steps["ln10As"], 1/steps["ns"], 1/steps["ωb"], 1/steps["ωc"], 1/steps["w0"], 1/steps["wa"]]# preconditioning_matrix = Diagonal([1/0.3, 1/0.01, 1/0.0001, 1/0.01, 1/0.5, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1])
+                init_param_labels = ["ln10As", "ns", "ωb", "ωc", "w0", "wa"]
             elseif param == "ωc"
                 fit_model = model_FS(D_FS_all) | (ωc=fixed_value,)
                 preconditioning_entries = [1/steps["ln10As"], 1/steps["ns"], 1/steps["H0"], 1/steps["ωb"], 1/steps["w0"], 1/steps["wa"]]# preconditioning_matrix = Diagonal([1/0.3, 1/0.01, 1/2, 1/0.0001, 1/0.5, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1])
+                init_param_labels = ["ln10As", "ns", "H0", "ωb", "w0", "wa"]
             elseif param == "w0"
                 fit_model = model_FS(D_FS_all) | (w0=fixed_value,)
                 preconditioning_entries = [1/steps["ln10As"], 1/steps["ns"], 1/steps["H0"], 1/steps["ωb"], 1/steps["ωc"], 1/steps["wa"]]#preconditioning_matrix = Diagonal([1/0.3, 1/0.01, 1/2, 1/0.0001, 1/0.01, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1])
+                init_param_labels = ["ln10As", "ns", "H0", "ωb", "ωc", "wa"]
             elseif param == "wa"
                 fit_model = model_FS(D_FS_all) | (wa=fixed_value,)
                 preconditioning_entries = [1/steps["ln10As"], 1/steps["ns"], 1/steps["H0"], 1/steps["ωb"], 1/steps["ωc"], 1/steps["w0"]]#preconditioning_matrix = Diagonal([1/0.3, 1/0.01, 1/2, 1/0.0001, 1/0.01, 1/0.5, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1])
+                init_param_labels = ["ln10As", "ns", "H0", "ωb", "ωc", "w0"]
             end
         end
     elseif dataset == "FS+BAO"
@@ -1022,29 +1038,37 @@ end
             if param == "ln10As"
                 fit_model = model_FS_BAO(D_FS_BAO_all, D_Lya) | (ln10As=fixed_value, w0=-1, wa=0)
                 preconditioning_entries = [1/steps["ns"], 1/steps["H0"], 1/steps["ωb"], 1/steps["ωc"]]#preconditioning_matrix = Diagonal([1/0.01, 1/2, 1/0.0001, 1/0.01, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1])
+                init_param_labels = ["ns", "H0", "ωb", "ωc"]
             elseif param == "H0"
                 fit_model = model_FS_BAO(D_FS_BAO_all, D_Lya) | (H0=fixed_value, w0=-1, wa=0)
                 preconditioning_entries = [1/steps["ln10As"], 1/steps["ns"], 1/steps["ωb"], 1/steps["ωc"]]#preconditioning_matrix = Diagonal([1/0.3, 1/0.01, 1/0.0001, 1/0.01, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1])
+                init_param_labels = ["ln10As", "ns", "ωb", "ωc"]
             elseif param == "ωc"
                 fit_model = model_FS_BAO(D_FS_BAO_all, D_Lya) | (ωc=fixed_value, w0=-1, wa=0)
                 preconditioning_entries = [1/steps["ln10As"], 1/steps["ns"], 1/steps["H0"], 1/steps["ωb"]]#preconditioning_matrix = Diagonal([1/0.3, 1/0.01, 1/2, 1/0.0001, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1])
+                init_param_labels = ["ln10As", "ns", "H0", "ωb"]
             end
         elseif variation == "w0waCDM"
             if param == "ln10As"
                 fit_model = model_FS_BAO(D_FS_BAO_all, D_Lya) | (ln10As=fixed_value,)
                 preconditioning_entries = [1/steps["ns"], 1/steps["H0"], 1/steps["ωb"], 1/steps["ωc"], 1/steps["w0"], 1/steps["wa"]]# preconditioning_matrix = Diagonal([1/0.01, 1/2, 1/0.0001, 1/0.01, 1/0.5, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1])
+                init_param_labels = ["ns", "H0", "ωb", "ωc", "w0", "wa"]
             elseif param == "H0"
                 fit_model = model_FS_BAO(D_FS_BAO_all, D_Lya) | (H0=fixed_value,)
                 preconditioning_entries = [1/steps["ln10As"], 1/steps["ns"], 1/steps["ωb"], 1/steps["ωc"], 1/steps["w0"], 1/steps["wa"]]#preconditioning_matrix = Diagonal([1/0.3, 1/0.01, 1/0.0001, 1/0.01, 1/0.5, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1])
+                init_param_labels = ["ln10As", "ns", "ωb", "ωc", "w0", "wa"]
             elseif param == "ωc"
                 fit_model = model_FS_BAO(D_FS_BAO_all, D_Lya) | (ωc=fixed_value,)
                 preconditioning_entries = [1/steps["ln10As"], 1/steps["ns"], 1/steps["H0"], 1/steps["ωb"], 1/steps["w0"], 1/steps["wa"]]# preconditioning_matrix = Diagonal([1/0.3, 1/0.01, 1/2, 1/0.0001, 1/0.5, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1])
+                init_param_labels = ["ln10As", "ns", "H0", "ωb", "w0", "wa"]
             elseif param == "w0"
                 fit_model = model_FS_BAO(D_FS_BAO_all, D_Lya) | (w0=fixed_value,)
                 preconditioning_entries = [1/steps["ln10As"], 1/steps["ns"], 1/steps["H0"], 1/steps["ωb"], 1/steps["ωc"], 1/steps["wa"]]# preconditioning_matrix = Diagonal([1/0.3, 1/0.01, 1/2, 1/0.0001, 1/0.01, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1])
+                init_param_labels = ["ln10As", "ns", "H0", "ωb", "ωc", "wa"]
             elseif param == "wa"
                 fit_model = model_FS_BAO(D_FS_BAO_all, D_Lya) | (wa=fixed_value,)
                 preconditioning_entries = [1/steps["ln10As"], 1/steps["ns"], 1/steps["H0"], 1/steps["ωb"], 1/steps["ωc"], 1/steps["w0"]]# preconditioning_matrix = Diagonal([1/0.3, 1/0.01, 1/2, 1/0.0001, 1/0.01, 1/0.5, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1])
+                init_param_labels = ["ln10As", "ns", "H0", "ωb", "ωc", "w0"]
             end
         end
     elseif dataset == "BAO"
@@ -1052,28 +1076,35 @@ end
             if param == "H0"
                 fit_model = model_BAO(D_BAO_all) | (ln10As=3.044, ns=0.9649, H0=fixed_value, w0=-1, wa=0)
                 preconditioning_entries = [1/steps["ωb"], 1/steps["ωc"]]
+                init_param_labels = ["ωb", "ωc"]
             elseif param == "ωc"
                 fit_model = model_BAO(D_BAO_all) | (ln10As=3.044, ns=0.9649, ωc=fixed_value, w0=-1, wa=0)
                 preconditioning_entries = [1/steps["H0"], 1/steps["ωb"]]
+                init_param_labels = ["H0", "ωb"]
             end
         elseif variation == "w0waCDM"
             if param == "H0"
                 fit_model = model_BAO(D_BAO_all) | (ln10As=3.044, ns=0.9649, H0=fixed_value)
                 preconditioning_entries = [1/steps["ωb"], 1/steps["ωc"], 1/steps["w0"], 1/steps["wa"]]
+                init_param_labels = ["ωb", "ωc", "w0", "wa"]
             elseif param == "ωc"
                 fit_model = model_BAO(D_BAO_all) | (ln10As=3.044, ns=0.9649, ωc=fixed_value)
                 preconditioning_entries = [1/steps["H0"], 1/steps["ωb"], 1/steps["w0"], 1/steps["wa"]]
+                init_param_labels = ["H0", "ωb", "w0", "wa"]
             elseif param == "w0"
                 fit_model = model_BAO(D_BAO_all) | (ln10As=3.044, ns=0.9649, w0=fixed_value)
                 preconditioning_entries = [1/steps["H0"], 1/steps["ωb"], 1/steps["ωc"], 1/steps["wa"]]
+                init_param_labels = ["H0", "ωb", "ωc", "wa"]
             elseif param == "wa"
                 fit_model = model_BAO(D_BAO_all) | (ln10As=3.044, ns=0.9649, wa=fixed_value)
                 preconditioning_entries = [1/steps["H0"], 1/steps["ωb"], 1/steps["ωc"], 1/steps["w0"]]
+                init_param_labels = ["H0", "ωb", "ωc", "w0"]
             end
         end
     end
     if dataset in ["FS", "FS+BAO"]
         append!(preconditioning_entries, repeat([1/steps["b1p"], 1/steps["b2p"], 1/steps["bsp"], 1/steps["alpha0p"], 1/steps["alpha2p"], 1/steps["st0p"], 1/steps["st2p"]], length(tracer_vector)))
+        append!(init_param_labels, repeat(["b1p", "b2p", "bsp", "alpha0p", "alpha2p", "st0p", "st2p"], length(tracer_vector)))
     end
     preconditioning_matrix = Diagonal(preconditioning_entries)
     profile_values_array = SharedArray{Float64}(n_runs)
@@ -1085,13 +1116,22 @@ end
 
     for i in 1:n_runs
         try
-            fit_result = maximum_a_posteriori(fit_model, LBFGS(m=30, P=preconditioning_matrix))#, P=preconditioning_matrix))#, P=preconditioning_matrix))#, P=Diagonal([1/0.01, 1/1, 1/0.0001, 1/0.01, 1/0.1, 1/1, 1/1, 1/10, 1/10, 1/1, 1/1, 1/0.1, 1/1, 1/1, 1/10, 1/10, 1/1, 1/1, 1/0.1, 1/1, 1/1, 1/10, 1/10, 1/1, 1/1, 1/0.1, 1/1, 1/1, 1/10, 1/10, 1/1, 1/1, 1/0.1, 1/1, 1/1, 1/10, 1/10, 1/1, 1/1, 1/0.1, 1/1, 1/1, 1/10, 1/10, 1/1, 1/1])))#, P=preconditioning_matrix)) # add initial values if needed!###########################################################
+          #  init_values = []# chooses an initial from a smaller range than the emulator bounds
+          #  for param in init_param_labels
+           #     if param in ["ns", "ωb"]
+           #         guess = rand(Normal(init_values_ranges[param][1], init_values_ranges[param][2]))
+           #     else
+           #         guess = rand(Uniform(init_values_ranges[param][1], init_values_ranges[param][2]))
+            #    end
+            #    append!(init_values, guess)
+            #end
+            fit_result = maximum_a_posteriori(fit_model, LBFGS(m=30, P=preconditioning_matrix))#; initial_params=init_values)############################; initial_params=init_values)#, P=preconditioning_matrix))#, P=preconditioning_matrix))#, P=Diagonal([1/0.01, 1/1, 1/0.0001, 1/0.01, 1/0.1, 1/1, 1/1, 1/10, 1/10, 1/1, 1/1, 1/0.1, 1/1, 1/1, 1/10, 1/10, 1/1, 1/1, 1/0.1, 1/1, 1/1, 1/10, 1/10, 1/1, 1/1, 1/0.1, 1/1, 1/1, 1/10, 1/10, 1/1, 1/1, 1/0.1, 1/1, 1/1, 1/10, 1/10, 1/1, 1/1, 1/0.1, 1/1, 1/1, 1/10, 1/10, 1/1, 1/1])))#, P=preconditioning_matrix)) # add initial values if needed!###########################################################
             profile_values_array[i] = fit_result.lp
             bestfit_values_array[:, i] = fit_result.values.array
-            println("worker OKAY")
+            #println("worker OKAY")
         catch e 
             println("worker fucked")
-            println(e)
+            #println(e)
         end
     end
     return [profile_values_array, bestfit_values_array]
