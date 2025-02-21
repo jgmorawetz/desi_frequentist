@@ -230,16 +230,25 @@ function main()
 
     cosmo_ranges = Dict("ln10As" => [2.5, 3.5], "ns" => [0.9649, 0.042], "H0" => [60, 80], "ωb" => [0.02218, 0.00055], 
                     "ωc" => [0.09, 0.2], "w0" => [-2, 0.5], "wa" => [-3, 1.64]) # emulator boundaries (range which minimizer is allowed to move)
-    eft_ranges = Dict("b1p" => [0, 3], "b2p" =>  [-10, 5], "bsp" => [-10, 10], "alpha0p" => [-100, 400], "alpha2p" => [-400, 200],
-                    "st0p" => [-40, 20], "st2p" => [-50, 50]) # boundaries for EFT parameters (range which minimizer is allowed to move)
+    #eft_ranges = Dict("b1p" => [0, 3], "b2p" =>  [-10, 5], "bsp" => [-10, 10], "alpha0p" => [-100, 400], "alpha2p" => [-400, 200],
+    #                  "st0p" => [-40, 20], "st2p" => [-50, 50]) # boundaries for EFT parameters (range which minimizer is allowed to move)
+    eft_ranges = Dict("b1p_BGS" => [0, 2], "b1p_LRG1" => [0, 2], "b1p_LRG2" => [0, 2], "b1p_LRG3" => [0, 2], "b1p_ELG2" => [0, 2], "b1p_QSO" => [0, 2],
+                      "b2p_BGS" => [-10, 5], "b2p_LRG1" => [-10, 5], "b2p_LRG2" => [-10, 5], "b2p_LRG3" => [-10, 5], "b2p_ELG2" => [-5, 5], "b2p_QSO" => [-5, 5],
+                      "bsp_BGS" => [-10, 10], "bsp_LRG1" => [-10, 10], "bsp_LRG2" => [-10, 10], "bsp_LRG3" => [-10, 10], "bsp_ELG2" => [-5, 5], "bsp_QSO" => [-5, 5],
+                      "alpha0p_BGS" => [-100, 400], "alpha0p_LRG1" => [-100, 300], "alpha0p_LRG2" => [-100, 150], "alpha0p_LRG3" => [-100, 150], "alpha0p_ELG2" => [-100, 300], "alpha0p_QSO" => [-150, 200],
+                      "alpha2p_BGS" => [-400, 400], "alpha2p_LRG1" => [-400, 300], "alpha2p_LRG2" => [-300, 300], "alpha2p_LRG3" => [-400, 300], "alpha2p_ELG2" => [-300, 300], "alpha2p_QSO" => [-400, 300],
+                      "st0p_BGS" => [-40, 30], "st0p_LRG1" => [-30, 20], "st0p_LRG2" => [-20, 20], "st0p_LRG3" => [-15, 10], "st0p_ELG2" => [-10, 10], "st0p_QSO" => [-2, 2],
+                      "st2p_BGS" => [-50, 50], "st2p_LRG1" => [-30, 20], "st2p_LRG2" => [-30, 20], "st2p_LRG3" => [-15, 20], "st2p_ELG2" => [-100, 100], "st2p_QSO" => [-15, 10])
+    
     #cosmo_ranges = Dict("ln10As" => [2.0, 3.5], "ns" => [0.9649, 0.042], "H0" => [50, 80], "ωb" => [0.02218, 0.00055], 
     #                    "ωc" => [0.09, 0.25], "w0" => [-2, 0.5], "wa" => [-3, 1.64]) # emulator boundaries (range which minimizer is allowed to move)
     #eft_ranges = Dict("b1p" => [0, 6], "b2p" =>  [-15, 5], "bsp" => [-10, 15], "alpha0p" => [-100, 400], "alpha2p" => [-800, 200],
     #                    "st0p" => [-80, 80], "st2p" => [-200, 200]) # boundaries for EFT parameters (range which minimizer is allowed to move)
-    init_values_ranges = Dict("ln10As" => [2.5, 3.5], "ns" => [0.9649, 0.042], "H0" => [65, 75], "ωb" => [0.02218, 0.00055], 
-                              "ωc" => [0.1, 0.15], "w0" => [-1.5, 0], "wa" => [-2, 1],
-                              "b1p" => [0, 2], "b2p" =>  [-5, 5], "bsp" => [-5, 10], "alpha0p" => [-50, 100], "alpha2p" => [-150, 150],
-                              "st0p" => [-50, 50], "st2p" => [-50, 50]) # range of initial random guesses (narrower than emulator range to have fewer bad runs)
+    
+    #init_values_ranges = Dict("ln10As" => [2.5, 3.5], "ns" => [0.9649, 0.042], "H0" => [65, 75], "ωb" => [0.02218, 0.00055], 
+    #                          "ωc" => [0.1, 0.15], "w0" => [-1.5, 0], "wa" => [-2, 1],
+    #                          "b1p" => [0, 2], "b2p" =>  [-5, 5], "bsp" => [-5, 10], "alpha0p" => [-50, 100], "alpha2p" => [-150, 150],
+     #                         "st0p" => [-50, 50], "st2p" => [-50, 50]) # range of initial random guesses (narrower than emulator range to have fewer bad runs)
     steps = Dict("ln10As" => 0.2, "ns" => 0.05, "H0" => 2, "ωb" => 0.001, "ωc" => 0.01, "w0" => 0.5, "wa" => 1,
                  "b1p" => 0.1, "b2p" => 1, "bsp" => 1, "alpha0p" => 20, "alpha2p" => 50, "st0p" => 5, "st2p" => 5) # preconditioning step sizes
 
@@ -277,7 +286,7 @@ function main()
     @everywhere SN_type = $SN_type
 
     @everywhere cosmo_ranges = $cosmo_ranges
-    @everywhere init_values_ranges = $init_values_ranges
+    #@everywhere init_values_ranges = $init_values_ranges
     @everywhere eft_ranges = $eft_ranges
     @everywhere steps = $steps
 
@@ -407,75 +416,75 @@ end
     # Iterates through each tracer
     for tracer in tracer_vector
         if tracer == "BGS"
-            b1p_BGS ~ Uniform(eft_ranges["b1p"][1], eft_ranges["b1p"][2])
-            b2p_BGS ~ Uniform(eft_ranges["b2p"][1], eft_ranges["b2p"][2])
+            b1p_BGS ~ Uniform(eft_ranges["b1p_BGS"][1], eft_ranges["b1p_BGS"][2])
+            b2p_BGS ~ Uniform(eft_ranges["b2p_BGS"][1], eft_ranges["b2p_BGS"][2])
             b3p_BGS = 0
-            bsp_BGS ~ Uniform(eft_ranges["bsp"][1], eft_ranges["bsp"][2])
-            alpha0p_BGS ~ Uniform(eft_ranges["alpha0p"][1], eft_ranges["alpha0p"][2])
-            alpha2p_BGS ~ Uniform(eft_ranges["alpha2p"][1], eft_ranges["alpha2p"][2])
+            bsp_BGS ~ Uniform(eft_ranges["bsp_BGS"][1], eft_ranges["bsp_BGS"][2])
+            alpha0p_BGS ~ Uniform(eft_ranges["alpha0p_BGS"][1], eft_ranges["alpha0p_BGS"][2])
+            alpha2p_BGS ~ Uniform(eft_ranges["alpha2p_BGS"][1], eft_ranges["alpha2p_BGS"][2])
             alpha4p_BGS = 0
-            st0p_BGS ~ Uniform(eft_ranges["st0p"][1], eft_ranges["st0p"][2])
-            st2p_BGS ~ Uniform(eft_ranges["st2p"][1], eft_ranges["st2p"][2])
+            st0p_BGS ~ Uniform(eft_ranges["st0p_BGS"][1], eft_ranges["st0p_BGS"][2])
+            st2p_BGS ~ Uniform(eft_ranges["st2p_BGS"][1], eft_ranges["st2p_BGS"][2])
             st4p_BGS = 0
             eft_params_physical = [b1p_BGS, b2p_BGS, b3p_BGS, bsp_BGS, alpha0p_BGS, alpha2p_BGS, alpha4p_BGS, st0p_BGS, st2p_BGS, st4p_BGS]
         elseif tracer == "LRG1"
-            b1p_LRG1 ~ Uniform(eft_ranges["b1p"][1], eft_ranges["b1p"][2])
-            b2p_LRG1 ~ Uniform(eft_ranges["b2p"][1], eft_ranges["b2p"][2])
+            b1p_LRG1 ~ Uniform(eft_ranges["b1p_LRG1"][1], eft_ranges["b1p_LRG1"][2])
+            b2p_LRG1 ~ Uniform(eft_ranges["b2p_LRG1"][1], eft_ranges["b2p_LRG1"][2])
             b3p_LRG1 = 0
-            bsp_LRG1 ~ Uniform(eft_ranges["bsp"][1], eft_ranges["bsp"][2])
-            alpha0p_LRG1 ~ Uniform(eft_ranges["alpha0p"][1], eft_ranges["alpha0p"][2])
-            alpha2p_LRG1 ~ Uniform(eft_ranges["alpha2p"][1], eft_ranges["alpha2p"][2])
+            bsp_LRG1 ~ Uniform(eft_ranges["bsp_LRG1"][1], eft_ranges["bsp_LRG1"][2])
+            alpha0p_LRG1 ~ Uniform(eft_ranges["alpha0p_LRG1"][1], eft_ranges["alpha0p_LRG1"][2])
+            alpha2p_LRG1 ~ Uniform(eft_ranges["alpha2p_LRG1"][1], eft_ranges["alpha2p_LRG1"][2])
             alpha4p_LRG1 = 0
-            st0p_LRG1 ~ Uniform(eft_ranges["st0p"][1], eft_ranges["st0p"][2])
-            st2p_LRG1 ~ Uniform(eft_ranges["st2p"][1], eft_ranges["st2p"][2])
+            st0p_LRG1 ~ Uniform(eft_ranges["st0p_LRG1"][1], eft_ranges["st0p_LRG1"][2])
+            st2p_LRG1 ~ Uniform(eft_ranges["st2p_LRG1"][1], eft_ranges["st2p_LRG1"][2])
             st4p_LRG1 = 0
             eft_params_physical = [b1p_LRG1, b2p_LRG1, b3p_LRG1, bsp_LRG1, alpha0p_LRG1, alpha2p_LRG1, alpha4p_LRG1, st0p_LRG1, st2p_LRG1, st4p_LRG1]
         elseif tracer == "LRG2"
-            b1p_LRG2 ~ Uniform(eft_ranges["b1p"][1], eft_ranges["b1p"][2])
-            b2p_LRG2 ~ Uniform(eft_ranges["b2p"][1], eft_ranges["b2p"][2])
+            b1p_LRG2 ~ Uniform(eft_ranges["b1p_LRG2"][1], eft_ranges["b1p_LRG2"][2])
+            b2p_LRG2 ~ Uniform(eft_ranges["b2p_LRG2"][1], eft_ranges["b2p_LRG2"][2])
             b3p_LRG2 = 0
-            bsp_LRG2 ~ Uniform(eft_ranges["bsp"][1], eft_ranges["bsp"][2])
-            alpha0p_LRG2 ~ Uniform(eft_ranges["alpha0p"][1], eft_ranges["alpha0p"][2])
-            alpha2p_LRG2 ~ Uniform(eft_ranges["alpha2p"][1], eft_ranges["alpha2p"][2])
+            bsp_LRG2 ~ Uniform(eft_ranges["bsp_LRG2"][1], eft_ranges["bsp_LRG2"][2])
+            alpha0p_LRG2 ~ Uniform(eft_ranges["alpha0p_LRG2"][1], eft_ranges["alpha0p_LRG2"][2])
+            alpha2p_LRG2 ~ Uniform(eft_ranges["alpha2p_LRG2"][1], eft_ranges["alpha2p_LRG2"][2])
             alpha4p_LRG2 = 0
-            st0p_LRG2 ~ Uniform(eft_ranges["st0p"][1], eft_ranges["st0p"][2])
-            st2p_LRG2 ~ Uniform(eft_ranges["st2p"][1], eft_ranges["st2p"][2])
+            st0p_LRG2 ~ Uniform(eft_ranges["st0p_LRG2"][1], eft_ranges["st0p_LRG2"][2])
+            st2p_LRG2 ~ Uniform(eft_ranges["st2p_LRG2"][1], eft_ranges["st2p_LRG2"][2])
             st4p_LRG2 = 0
             eft_params_physical = [b1p_LRG2, b2p_LRG2, b3p_LRG2, bsp_LRG2, alpha0p_LRG2, alpha2p_LRG2, alpha4p_LRG2, st0p_LRG2, st2p_LRG2, st4p_LRG2]
         elseif tracer == "LRG3"
-            b1p_LRG3 ~ Uniform(eft_ranges["b1p"][1], eft_ranges["b1p"][2])
-            b2p_LRG3 ~ Uniform(eft_ranges["b2p"][1], eft_ranges["b2p"][2])
+            b1p_LRG3 ~ Uniform(eft_ranges["b1p_LRG3"][1], eft_ranges["b1p_LRG3"][2])
+            b2p_LRG3 ~ Uniform(eft_ranges["b2p_LRG3"][1], eft_ranges["b2p_LRG3"][2])
             b3p_LRG3 = 0
-            bsp_LRG3 ~ Uniform(eft_ranges["bsp"][1], eft_ranges["bsp"][2])
-            alpha0p_LRG3 ~ Uniform(eft_ranges["alpha0p"][1], eft_ranges["alpha0p"][2])
-            alpha2p_LRG3 ~ Uniform(eft_ranges["alpha2p"][1], eft_ranges["alpha2p"][2])
+            bsp_LRG3 ~ Uniform(eft_ranges["bsp_LRG3"][1], eft_ranges["bsp_LRG3"][2])
+            alpha0p_LRG3 ~ Uniform(eft_ranges["alpha0p_LRG3"][1], eft_ranges["alpha0p_LRG3"][2])
+            alpha2p_LRG3 ~ Uniform(eft_ranges["alpha2p_LRG3"][1], eft_ranges["alpha2p_LRG3"][2])
             alpha4p_LRG3 = 0
-            st0p_LRG3 ~ Uniform(eft_ranges["st0p"][1], eft_ranges["st0p"][2])
-            st2p_LRG3 ~ Uniform(eft_ranges["st2p"][1], eft_ranges["st2p"][2])
+            st0p_LRG3 ~ Uniform(eft_ranges["st0p_LRG3"][1], eft_ranges["st0p_LRG3"][2])
+            st2p_LRG3 ~ Uniform(eft_ranges["st2p_LRG3"][1], eft_ranges["st2p_LRG3"][2])
             st4p_LRG3 = 0
             eft_params_physical = [b1p_LRG3, b2p_LRG3, b3p_LRG3, bsp_LRG3, alpha0p_LRG3, alpha2p_LRG3, alpha4p_LRG3, st0p_LRG3, st2p_LRG3, st4p_LRG3]
         elseif tracer == "ELG2"
-            b1p_ELG2 ~ Uniform(eft_ranges["b1p"][1], eft_ranges["b1p"][2])
-            b2p_ELG2 ~ Uniform(eft_ranges["b2p"][1], eft_ranges["b2p"][2])
+            b1p_ELG2 ~ Uniform(eft_ranges["b1p_ELG2"][1], eft_ranges["b1p_ELG2"][2])
+            b2p_ELG2 ~ Uniform(eft_ranges["b2p_ELG2"][1], eft_ranges["b2p_ELG2"][2])
             b3p_ELG2 = 0
-            bsp_ELG2 ~ Uniform(eft_ranges["bsp"][1], eft_ranges["bsp"][2])
-            alpha0p_ELG2 ~ Uniform(eft_ranges["alpha0p"][1], eft_ranges["alpha0p"][2])
-            alpha2p_ELG2 ~ Uniform(eft_ranges["alpha2p"][1], eft_ranges["alpha2p"][2])
+            bsp_ELG2 ~ Uniform(eft_ranges["bsp_ELG2"][1], eft_ranges["bsp_ELG2"][2])
+            alpha0p_ELG2 ~ Uniform(eft_ranges["alpha0p_ELG2"][1], eft_ranges["alpha0p_ELG2"][2])
+            alpha2p_ELG2 ~ Uniform(eft_ranges["alpha2p_ELG2"][1], eft_ranges["alpha2p_ELG2"][2])
             alpha4p_ELG2 = 0
-            st0p_ELG2 ~ Uniform(eft_ranges["st0p"][1], eft_ranges["st0p"][2])
-            st2p_ELG2 ~ Uniform(eft_ranges["st2p"][1], eft_ranges["st2p"][2])
+            st0p_ELG2 ~ Uniform(eft_ranges["st0p_ELG2"][1], eft_ranges["st0p_ELG2"][2])
+            st2p_ELG2 ~ Uniform(eft_ranges["st2p_ELG2"][1], eft_ranges["st2p_ELG2"][2])
             st4p_ELG2 = 0
             eft_params_physical = [b1p_ELG2, b2p_ELG2, b3p_ELG2, bsp_ELG2, alpha0p_ELG2, alpha2p_ELG2, alpha4p_ELG2, st0p_ELG2, st2p_ELG2, st4p_ELG2]
         elseif tracer == "QSO"
-            b1p_QSO ~ Uniform(eft_ranges["b1p"][1], eft_ranges["b1p"][2])
-            b2p_QSO ~ Uniform(eft_ranges["b2p"][1], eft_ranges["b2p"][2])
+            b1p_QSO ~ Uniform(eft_ranges["b1p_QSO"][1], eft_ranges["b1p_QSO"][2])
+            b2p_QSO ~ Uniform(eft_ranges["b2p_QSO"][1], eft_ranges["b2p_QSO"][2])
             b3p_QSO = 0
-            bsp_QSO ~ Uniform(eft_ranges["bsp"][1], eft_ranges["bsp"][2])
-            alpha0p_QSO ~ Uniform(eft_ranges["alpha0p"][1], eft_ranges["alpha0p"][2])
-            alpha2p_QSO ~ Uniform(eft_ranges["alpha2p"][1], eft_ranges["alpha2p"][2])
+            bsp_QSO ~ Uniform(eft_ranges["bsp_QSO"][1], eft_ranges["bsp_QSO"][2])
+            alpha0p_QSO ~ Uniform(eft_ranges["alpha0p_QSO"][1], eft_ranges["alpha0p_QSO"][2])
+            alpha2p_QSO ~ Uniform(eft_ranges["alpha2p_QSO"][1], eft_ranges["alpha2p_QSO"][2])
             alpha4p_QSO = 0
-            st0p_QSO ~ Uniform(eft_ranges["st0p"][1], eft_ranges["st0p"][2])
-            st2p_QSO ~ Uniform(eft_ranges["st2p"][1], eft_ranges["st2p"][2])
+            st0p_QSO ~ Uniform(eft_ranges["st0p_QSO"][1], eft_ranges["st0p_QSO"][2])
+            st2p_QSO ~ Uniform(eft_ranges["st2p_QSO"][1], eft_ranges["st2p_QSO"][2])
             st4p_QSO = 0
             eft_params_physical = [b1p_QSO, b2p_QSO, b3p_QSO, bsp_QSO, alpha0p_QSO, alpha2p_QSO, alpha4p_QSO, st0p_QSO, st2p_QSO, st4p_QSO]            
         end
@@ -538,75 +547,75 @@ end
     # Iterates through each tracer
     for tracer in tracer_vector
         if tracer == "BGS"
-            b1p_BGS ~ Uniform(eft_ranges["b1p"][1], eft_ranges["b1p"][2])
-            b2p_BGS ~ Uniform(eft_ranges["b2p"][1], eft_ranges["b2p"][2])
+            b1p_BGS ~ Uniform(eft_ranges["b1p_BGS"][1], eft_ranges["b1p_BGS"][2])
+            b2p_BGS ~ Uniform(eft_ranges["b2p_BGS"][1], eft_ranges["b2p_BGS"][2])
             b3p_BGS = 0
-            bsp_BGS ~ Uniform(eft_ranges["bsp"][1], eft_ranges["bsp"][2])
-            alpha0p_BGS ~ Uniform(eft_ranges["alpha0p"][1], eft_ranges["alpha0p"][2])
-            alpha2p_BGS ~ Uniform(eft_ranges["alpha2p"][1], eft_ranges["alpha2p"][2])
+            bsp_BGS ~ Uniform(eft_ranges["bsp_BGS"][1], eft_ranges["bsp_BGS"][2])
+            alpha0p_BGS ~ Uniform(eft_ranges["alpha0p_BGS"][1], eft_ranges["alpha0p_BGS"][2])
+            alpha2p_BGS ~ Uniform(eft_ranges["alpha2p_BGS"][1], eft_ranges["alpha2p_BGS"][2])
             alpha4p_BGS = 0
-            st0p_BGS ~ Uniform(eft_ranges["st0p"][1], eft_ranges["st0p"][2])
-            st2p_BGS ~ Uniform(eft_ranges["st2p"][1], eft_ranges["st2p"][2])
+            st0p_BGS ~ Uniform(eft_ranges["st0p_BGS"][1], eft_ranges["st0p_BGS"][2])
+            st2p_BGS ~ Uniform(eft_ranges["st2p_BGS"][1], eft_ranges["st2p_BGS"][2])
             st4p_BGS = 0
             eft_params_physical = [b1p_BGS, b2p_BGS, b3p_BGS, bsp_BGS, alpha0p_BGS, alpha2p_BGS, alpha4p_BGS, st0p_BGS, st2p_BGS, st4p_BGS]
         elseif tracer == "LRG1"
-            b1p_LRG1 ~ Uniform(eft_ranges["b1p"][1], eft_ranges["b1p"][2])
-            b2p_LRG1 ~ Uniform(eft_ranges["b2p"][1], eft_ranges["b2p"][2])
+            b1p_LRG1 ~ Uniform(eft_ranges["b1p_LRG1"][1], eft_ranges["b1p_LRG1"][2])
+            b2p_LRG1 ~ Uniform(eft_ranges["b2p_LRG1"][1], eft_ranges["b2p_LRG1"][2])
             b3p_LRG1 = 0
-            bsp_LRG1 ~ Uniform(eft_ranges["bsp"][1], eft_ranges["bsp"][2])
-            alpha0p_LRG1 ~ Uniform(eft_ranges["alpha0p"][1], eft_ranges["alpha0p"][2])
-            alpha2p_LRG1 ~ Uniform(eft_ranges["alpha2p"][1], eft_ranges["alpha2p"][2])
+            bsp_LRG1 ~ Uniform(eft_ranges["bsp_LRG1"][1], eft_ranges["bsp_LRG1"][2])
+            alpha0p_LRG1 ~ Uniform(eft_ranges["alpha0p_LRG1"][1], eft_ranges["alpha0p_LRG1"][2])
+            alpha2p_LRG1 ~ Uniform(eft_ranges["alpha2p_LRG1"][1], eft_ranges["alpha2p_LRG1"][2])
             alpha4p_LRG1 = 0
-            st0p_LRG1 ~ Uniform(eft_ranges["st0p"][1], eft_ranges["st0p"][2])
-            st2p_LRG1 ~ Uniform(eft_ranges["st2p"][1], eft_ranges["st2p"][2])
+            st0p_LRG1 ~ Uniform(eft_ranges["st0p_LRG1"][1], eft_ranges["st0p_LRG1"][2])
+            st2p_LRG1 ~ Uniform(eft_ranges["st2p_LRG1"][1], eft_ranges["st2p_LRG1"][2])
             st4p_LRG1 = 0
             eft_params_physical = [b1p_LRG1, b2p_LRG1, b3p_LRG1, bsp_LRG1, alpha0p_LRG1, alpha2p_LRG1, alpha4p_LRG1, st0p_LRG1, st2p_LRG1, st4p_LRG1]
         elseif tracer == "LRG2"
-            b1p_LRG2 ~ Uniform(eft_ranges["b1p"][1], eft_ranges["b1p"][2])
-            b2p_LRG2 ~ Uniform(eft_ranges["b2p"][1], eft_ranges["b2p"][2])
+            b1p_LRG2 ~ Uniform(eft_ranges["b1p_LRG2"][1], eft_ranges["b1p_LRG2"][2])
+            b2p_LRG2 ~ Uniform(eft_ranges["b2p_LRG2"][1], eft_ranges["b2p_LRG2"][2])
             b3p_LRG2 = 0
-            bsp_LRG2 ~ Uniform(eft_ranges["bsp"][1], eft_ranges["bsp"][2])
-            alpha0p_LRG2 ~ Uniform(eft_ranges["alpha0p"][1], eft_ranges["alpha0p"][2])
-            alpha2p_LRG2 ~ Uniform(eft_ranges["alpha2p"][1], eft_ranges["alpha2p"][2])
+            bsp_LRG2 ~ Uniform(eft_ranges["bsp_LRG2"][1], eft_ranges["bsp_LRG2"][2])
+            alpha0p_LRG2 ~ Uniform(eft_ranges["alpha0p_LRG2"][1], eft_ranges["alpha0p_LRG2"][2])
+            alpha2p_LRG2 ~ Uniform(eft_ranges["alpha2p_LRG2"][1], eft_ranges["alpha2p_LRG2"][2])
             alpha4p_LRG2 = 0
-            st0p_LRG2 ~ Uniform(eft_ranges["st0p"][1], eft_ranges["st0p"][2])
-            st2p_LRG2 ~ Uniform(eft_ranges["st2p"][1], eft_ranges["st2p"][2])
+            st0p_LRG2 ~ Uniform(eft_ranges["st0p_LRG2"][1], eft_ranges["st0p_LRG2"][2])
+            st2p_LRG2 ~ Uniform(eft_ranges["st2p_LRG2"][1], eft_ranges["st2p_LRG2"][2])
             st4p_LRG2 = 0
             eft_params_physical = [b1p_LRG2, b2p_LRG2, b3p_LRG2, bsp_LRG2, alpha0p_LRG2, alpha2p_LRG2, alpha4p_LRG2, st0p_LRG2, st2p_LRG2, st4p_LRG2]
         elseif tracer == "LRG3"
-            b1p_LRG3 ~ Uniform(eft_ranges["b1p"][1], eft_ranges["b1p"][2])
-            b2p_LRG3 ~ Uniform(eft_ranges["b2p"][1], eft_ranges["b2p"][2])
+            b1p_LRG3 ~ Uniform(eft_ranges["b1p_LRG3"][1], eft_ranges["b1p_LRG3"][2])
+            b2p_LRG3 ~ Uniform(eft_ranges["b2p_LRG3"][1], eft_ranges["b2p_LRG3"][2])
             b3p_LRG3 = 0
-            bsp_LRG3 ~ Uniform(eft_ranges["bsp"][1], eft_ranges["bsp"][2])
-            alpha0p_LRG3 ~ Uniform(eft_ranges["alpha0p"][1], eft_ranges["alpha0p"][2])
-            alpha2p_LRG3 ~ Uniform(eft_ranges["alpha2p"][1], eft_ranges["alpha2p"][2])
+            bsp_LRG3 ~ Uniform(eft_ranges["bsp_LRG3"][1], eft_ranges["bsp_LRG3"][2])
+            alpha0p_LRG3 ~ Uniform(eft_ranges["alpha0p_LRG3"][1], eft_ranges["alpha0p_LRG3"][2])
+            alpha2p_LRG3 ~ Uniform(eft_ranges["alpha2p_LRG3"][1], eft_ranges["alpha2p_LRG3"][2])
             alpha4p_LRG3 = 0
-            st0p_LRG3 ~ Uniform(eft_ranges["st0p"][1], eft_ranges["st0p"][2])
-            st2p_LRG3 ~ Uniform(eft_ranges["st2p"][1], eft_ranges["st2p"][2])
+            st0p_LRG3 ~ Uniform(eft_ranges["st0p_LRG3"][1], eft_ranges["st0p_LRG3"][2])
+            st2p_LRG3 ~ Uniform(eft_ranges["st2p_LRG3"][1], eft_ranges["st2p_LRG3"][2])
             st4p_LRG3 = 0
             eft_params_physical = [b1p_LRG3, b2p_LRG3, b3p_LRG3, bsp_LRG3, alpha0p_LRG3, alpha2p_LRG3, alpha4p_LRG3, st0p_LRG3, st2p_LRG3, st4p_LRG3]
         elseif tracer == "ELG2"
-            b1p_ELG2 ~ Uniform(eft_ranges["b1p"][1], eft_ranges["b1p"][2])
-            b2p_ELG2 ~ Uniform(eft_ranges["b2p"][1], eft_ranges["b2p"][2])
+            b1p_ELG2 ~ Uniform(eft_ranges["b1p_ELG2"][1], eft_ranges["b1p_ELG2"][2])
+            b2p_ELG2 ~ Uniform(eft_ranges["b2p_ELG2"][1], eft_ranges["b2p_ELG2"][2])
             b3p_ELG2 = 0
-            bsp_ELG2 ~ Uniform(eft_ranges["bsp"][1], eft_ranges["bsp"][2])
-            alpha0p_ELG2 ~ Uniform(eft_ranges["alpha0p"][1], eft_ranges["alpha0p"][2])
-            alpha2p_ELG2 ~ Uniform(eft_ranges["alpha2p"][1], eft_ranges["alpha2p"][2])
+            bsp_ELG2 ~ Uniform(eft_ranges["bsp_ELG2"][1], eft_ranges["bsp_ELG2"][2])
+            alpha0p_ELG2 ~ Uniform(eft_ranges["alpha0p_ELG2"][1], eft_ranges["alpha0p_ELG2"][2])
+            alpha2p_ELG2 ~ Uniform(eft_ranges["alpha2p_ELG2"][1], eft_ranges["alpha2p_ELG2"][2])
             alpha4p_ELG2 = 0
-            st0p_ELG2 ~ Uniform(eft_ranges["st0p"][1], eft_ranges["st0p"][2])
-            st2p_ELG2 ~ Uniform(eft_ranges["st2p"][1], eft_ranges["st2p"][2])
+            st0p_ELG2 ~ Uniform(eft_ranges["st0p_ELG2"][1], eft_ranges["st0p_ELG2"][2])
+            st2p_ELG2 ~ Uniform(eft_ranges["st2p_ELG2"][1], eft_ranges["st2p_ELG2"][2])
             st4p_ELG2 = 0
             eft_params_physical = [b1p_ELG2, b2p_ELG2, b3p_ELG2, bsp_ELG2, alpha0p_ELG2, alpha2p_ELG2, alpha4p_ELG2, st0p_ELG2, st2p_ELG2, st4p_ELG2]
         elseif tracer == "QSO"
-            b1p_QSO ~ Uniform(eft_ranges["b1p"][1], eft_ranges["b1p"][2])
-            b2p_QSO ~ Uniform(eft_ranges["b2p"][1], eft_ranges["b2p"][2])
+            b1p_QSO ~ Uniform(eft_ranges["b1p_QSO"][1], eft_ranges["b1p_QSO"][2])
+            b2p_QSO ~ Uniform(eft_ranges["b2p_QSO"][1], eft_ranges["b2p_QSO"][2])
             b3p_QSO = 0
-            bsp_QSO ~ Uniform(eft_ranges["bsp"][1], eft_ranges["bsp"][2])
-            alpha0p_QSO ~ Uniform(eft_ranges["alpha0p"][1], eft_ranges["alpha0p"][2])
-            alpha2p_QSO ~ Uniform(eft_ranges["alpha2p"][1], eft_ranges["alpha2p"][2])
+            bsp_QSO ~ Uniform(eft_ranges["bsp_QSO"][1], eft_ranges["bsp_QSO"][2])
+            alpha0p_QSO ~ Uniform(eft_ranges["alpha0p_QSO"][1], eft_ranges["alpha0p_QSO"][2])
+            alpha2p_QSO ~ Uniform(eft_ranges["alpha2p_QSO"][1], eft_ranges["alpha2p_QSO"][2])
             alpha4p_QSO = 0
-            st0p_QSO ~ Uniform(eft_ranges["st0p"][1], eft_ranges["st0p"][2])
-            st2p_QSO ~ Uniform(eft_ranges["st2p"][1], eft_ranges["st2p"][2])
+            st0p_QSO ~ Uniform(eft_ranges["st0p_QSO"][1], eft_ranges["st0p_QSO"][2])
+            st2p_QSO ~ Uniform(eft_ranges["st2p_QSO"][1], eft_ranges["st2p_QSO"][2])
             st4p_QSO = 0
             eft_params_physical = [b1p_QSO, b2p_QSO, b3p_QSO, bsp_QSO, alpha0p_QSO, alpha2p_QSO, alpha4p_QSO, st0p_QSO, st2p_QSO, st4p_QSO]            
         end
@@ -1000,37 +1009,37 @@ end
             if param == "ln10As"
                 fit_model = model_FS(D_FS_all) | (ln10As=fixed_value, w0=-1, wa=0)
                 preconditioning_entries = [1/steps["ns"], 1/steps["H0"], 1/steps["ωb"], 1/steps["ωc"]]#preconditioning_matrix = Diagonal([1/0.01, 1/2, 1/0.0001, 1/0.01, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1])
-                init_param_labels = ["ns", "H0", "ωb", "ωc"]
+            #    init_param_labels = ["ns", "H0", "ωb", "ωc"]
             elseif param == "H0"
                 fit_model = model_FS(D_FS_all) | (H0=fixed_value, w0=-1, wa=0)
                 preconditioning_entries = [1/steps["ln10As"], 1/steps["ns"], 1/steps["ωb"], 1/steps["ωc"]]#preconditioning_matrix = Diagonal([1/0.3, 1/0.01, 1/0.0001, 1/0.01, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1])
-                init_param_labels = ["ln10As", "ns", "ωb", "ωc"]
+            #    init_param_labels = ["ln10As", "ns", "ωb", "ωc"]
             elseif param == "ωc"
                 fit_model = model_FS(D_FS_all) | (ωc=fixed_value, w0=-1, wa=0)
                 preconditioning_entries = [1/steps["ln10As"], 1/steps["ns"], 1/steps["H0"], 1/steps["ωb"]]#preconditioning_matrix = Diagonal([1/0.3, 1/0.01, 1/2, 1/0.0001, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1])
-                init_param_labels = ["ln10As", "ns", "H0", "ωb"]
+            #    init_param_labels = ["ln10As", "ns", "H0", "ωb"]
             end
         elseif variation == "w0waCDM"
             if param == "ln10As"
                 fit_model = model_FS(D_FS_all) | (ln10As=fixed_value,)
                 preconditioning_entries = [1/steps["ns"], 1/steps["H0"], 1/steps["ωb"], 1/steps["ωc"], 1/steps["w0"], 1/steps["wa"]]# preconditioning_matrix = Diagonal([1/0.01, 1/2, 1/0.0001, 1/0.01, 1/0.5, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1])
-                init_param_labels = ["ns", "H0", "ωb", "ωc", "w0", "wa"]
+            #    init_param_labels = ["ns", "H0", "ωb", "ωc", "w0", "wa"]
             elseif param == "H0"
                 fit_model = model_FS(D_FS_all) | (H0=fixed_value,)
                 preconditioning_entries = [1/steps["ln10As"], 1/steps["ns"], 1/steps["ωb"], 1/steps["ωc"], 1/steps["w0"], 1/steps["wa"]]# preconditioning_matrix = Diagonal([1/0.3, 1/0.01, 1/0.0001, 1/0.01, 1/0.5, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1])
-                init_param_labels = ["ln10As", "ns", "ωb", "ωc", "w0", "wa"]
+            #    init_param_labels = ["ln10As", "ns", "ωb", "ωc", "w0", "wa"]
             elseif param == "ωc"
                 fit_model = model_FS(D_FS_all) | (ωc=fixed_value,)
                 preconditioning_entries = [1/steps["ln10As"], 1/steps["ns"], 1/steps["H0"], 1/steps["ωb"], 1/steps["w0"], 1/steps["wa"]]# preconditioning_matrix = Diagonal([1/0.3, 1/0.01, 1/2, 1/0.0001, 1/0.5, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1])
-                init_param_labels = ["ln10As", "ns", "H0", "ωb", "w0", "wa"]
+            #    init_param_labels = ["ln10As", "ns", "H0", "ωb", "w0", "wa"]
             elseif param == "w0"
                 fit_model = model_FS(D_FS_all) | (w0=fixed_value,)
                 preconditioning_entries = [1/steps["ln10As"], 1/steps["ns"], 1/steps["H0"], 1/steps["ωb"], 1/steps["ωc"], 1/steps["wa"]]#preconditioning_matrix = Diagonal([1/0.3, 1/0.01, 1/2, 1/0.0001, 1/0.01, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1])
-                init_param_labels = ["ln10As", "ns", "H0", "ωb", "ωc", "wa"]
+            #    init_param_labels = ["ln10As", "ns", "H0", "ωb", "ωc", "wa"]
             elseif param == "wa"
                 fit_model = model_FS(D_FS_all) | (wa=fixed_value,)
                 preconditioning_entries = [1/steps["ln10As"], 1/steps["ns"], 1/steps["H0"], 1/steps["ωb"], 1/steps["ωc"], 1/steps["w0"]]#preconditioning_matrix = Diagonal([1/0.3, 1/0.01, 1/2, 1/0.0001, 1/0.01, 1/0.5, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1])
-                init_param_labels = ["ln10As", "ns", "H0", "ωb", "ωc", "w0"]
+            #    init_param_labels = ["ln10As", "ns", "H0", "ωb", "ωc", "w0"]
             end
         end
     elseif dataset == "FS+BAO"
@@ -1038,37 +1047,37 @@ end
             if param == "ln10As"
                 fit_model = model_FS_BAO(D_FS_BAO_all, D_Lya) | (ln10As=fixed_value, w0=-1, wa=0)
                 preconditioning_entries = [1/steps["ns"], 1/steps["H0"], 1/steps["ωb"], 1/steps["ωc"]]#preconditioning_matrix = Diagonal([1/0.01, 1/2, 1/0.0001, 1/0.01, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1])
-                init_param_labels = ["ns", "H0", "ωb", "ωc"]
+            #    init_param_labels = ["ns", "H0", "ωb", "ωc"]
             elseif param == "H0"
                 fit_model = model_FS_BAO(D_FS_BAO_all, D_Lya) | (H0=fixed_value, w0=-1, wa=0)
                 preconditioning_entries = [1/steps["ln10As"], 1/steps["ns"], 1/steps["ωb"], 1/steps["ωc"]]#preconditioning_matrix = Diagonal([1/0.3, 1/0.01, 1/0.0001, 1/0.01, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1])
-                init_param_labels = ["ln10As", "ns", "ωb", "ωc"]
+            #    init_param_labels = ["ln10As", "ns", "ωb", "ωc"]
             elseif param == "ωc"
                 fit_model = model_FS_BAO(D_FS_BAO_all, D_Lya) | (ωc=fixed_value, w0=-1, wa=0)
                 preconditioning_entries = [1/steps["ln10As"], 1/steps["ns"], 1/steps["H0"], 1/steps["ωb"]]#preconditioning_matrix = Diagonal([1/0.3, 1/0.01, 1/2, 1/0.0001, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1])
-                init_param_labels = ["ln10As", "ns", "H0", "ωb"]
+            #    init_param_labels = ["ln10As", "ns", "H0", "ωb"]
             end
         elseif variation == "w0waCDM"
             if param == "ln10As"
                 fit_model = model_FS_BAO(D_FS_BAO_all, D_Lya) | (ln10As=fixed_value,)
                 preconditioning_entries = [1/steps["ns"], 1/steps["H0"], 1/steps["ωb"], 1/steps["ωc"], 1/steps["w0"], 1/steps["wa"]]# preconditioning_matrix = Diagonal([1/0.01, 1/2, 1/0.0001, 1/0.01, 1/0.5, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1])
-                init_param_labels = ["ns", "H0", "ωb", "ωc", "w0", "wa"]
+            #    init_param_labels = ["ns", "H0", "ωb", "ωc", "w0", "wa"]
             elseif param == "H0"
                 fit_model = model_FS_BAO(D_FS_BAO_all, D_Lya) | (H0=fixed_value,)
                 preconditioning_entries = [1/steps["ln10As"], 1/steps["ns"], 1/steps["ωb"], 1/steps["ωc"], 1/steps["w0"], 1/steps["wa"]]#preconditioning_matrix = Diagonal([1/0.3, 1/0.01, 1/0.0001, 1/0.01, 1/0.5, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1])
-                init_param_labels = ["ln10As", "ns", "ωb", "ωc", "w0", "wa"]
+            #    init_param_labels = ["ln10As", "ns", "ωb", "ωc", "w0", "wa"]
             elseif param == "ωc"
                 fit_model = model_FS_BAO(D_FS_BAO_all, D_Lya) | (ωc=fixed_value,)
                 preconditioning_entries = [1/steps["ln10As"], 1/steps["ns"], 1/steps["H0"], 1/steps["ωb"], 1/steps["w0"], 1/steps["wa"]]# preconditioning_matrix = Diagonal([1/0.3, 1/0.01, 1/2, 1/0.0001, 1/0.5, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1])
-                init_param_labels = ["ln10As", "ns", "H0", "ωb", "w0", "wa"]
+            #    init_param_labels = ["ln10As", "ns", "H0", "ωb", "w0", "wa"]
             elseif param == "w0"
                 fit_model = model_FS_BAO(D_FS_BAO_all, D_Lya) | (w0=fixed_value,)
                 preconditioning_entries = [1/steps["ln10As"], 1/steps["ns"], 1/steps["H0"], 1/steps["ωb"], 1/steps["ωc"], 1/steps["wa"]]# preconditioning_matrix = Diagonal([1/0.3, 1/0.01, 1/2, 1/0.0001, 1/0.01, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1])
-                init_param_labels = ["ln10As", "ns", "H0", "ωb", "ωc", "wa"]
+            #    init_param_labels = ["ln10As", "ns", "H0", "ωb", "ωc", "wa"]
             elseif param == "wa"
                 fit_model = model_FS_BAO(D_FS_BAO_all, D_Lya) | (wa=fixed_value,)
                 preconditioning_entries = [1/steps["ln10As"], 1/steps["ns"], 1/steps["H0"], 1/steps["ωb"], 1/steps["ωc"], 1/steps["w0"]]# preconditioning_matrix = Diagonal([1/0.3, 1/0.01, 1/2, 1/0.0001, 1/0.01, 1/0.5, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1])
-                init_param_labels = ["ln10As", "ns", "H0", "ωb", "ωc", "w0"]
+            #    init_param_labels = ["ln10As", "ns", "H0", "ωb", "ωc", "w0"]
             end
         end
     elseif dataset == "BAO"
@@ -1076,35 +1085,35 @@ end
             if param == "H0"
                 fit_model = model_BAO(D_BAO_all) | (ln10As=3.044, ns=0.9649, H0=fixed_value, w0=-1, wa=0)
                 preconditioning_entries = [1/steps["ωb"], 1/steps["ωc"]]
-                init_param_labels = ["ωb", "ωc"]
+            #    init_param_labels = ["ωb", "ωc"]
             elseif param == "ωc"
                 fit_model = model_BAO(D_BAO_all) | (ln10As=3.044, ns=0.9649, ωc=fixed_value, w0=-1, wa=0)
                 preconditioning_entries = [1/steps["H0"], 1/steps["ωb"]]
-                init_param_labels = ["H0", "ωb"]
+           #     init_param_labels = ["H0", "ωb"]
             end
         elseif variation == "w0waCDM"
             if param == "H0"
                 fit_model = model_BAO(D_BAO_all) | (ln10As=3.044, ns=0.9649, H0=fixed_value)
                 preconditioning_entries = [1/steps["ωb"], 1/steps["ωc"], 1/steps["w0"], 1/steps["wa"]]
-                init_param_labels = ["ωb", "ωc", "w0", "wa"]
+            #    init_param_labels = ["ωb", "ωc", "w0", "wa"]
             elseif param == "ωc"
                 fit_model = model_BAO(D_BAO_all) | (ln10As=3.044, ns=0.9649, ωc=fixed_value)
                 preconditioning_entries = [1/steps["H0"], 1/steps["ωb"], 1/steps["w0"], 1/steps["wa"]]
-                init_param_labels = ["H0", "ωb", "w0", "wa"]
+           #     init_param_labels = ["H0", "ωb", "w0", "wa"]
             elseif param == "w0"
                 fit_model = model_BAO(D_BAO_all) | (ln10As=3.044, ns=0.9649, w0=fixed_value)
                 preconditioning_entries = [1/steps["H0"], 1/steps["ωb"], 1/steps["ωc"], 1/steps["wa"]]
-                init_param_labels = ["H0", "ωb", "ωc", "wa"]
+          #      init_param_labels = ["H0", "ωb", "ωc", "wa"]
             elseif param == "wa"
                 fit_model = model_BAO(D_BAO_all) | (ln10As=3.044, ns=0.9649, wa=fixed_value)
                 preconditioning_entries = [1/steps["H0"], 1/steps["ωb"], 1/steps["ωc"], 1/steps["w0"]]
-                init_param_labels = ["H0", "ωb", "ωc", "w0"]
+          #      init_param_labels = ["H0", "ωb", "ωc", "w0"]
             end
         end
     end
     if dataset in ["FS", "FS+BAO"]
         append!(preconditioning_entries, repeat([1/steps["b1p"], 1/steps["b2p"], 1/steps["bsp"], 1/steps["alpha0p"], 1/steps["alpha2p"], 1/steps["st0p"], 1/steps["st2p"]], length(tracer_vector)))
-        append!(init_param_labels, repeat(["b1p", "b2p", "bsp", "alpha0p", "alpha2p", "st0p", "st2p"], length(tracer_vector)))
+      #  append!(init_param_labels, repeat(["b1p", "b2p", "bsp", "alpha0p", "alpha2p", "st0p", "st2p"], length(tracer_vector)))
     end
     preconditioning_matrix = Diagonal(preconditioning_entries)
     profile_values_array = SharedArray{Float64}(n_runs)
