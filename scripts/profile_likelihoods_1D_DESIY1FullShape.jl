@@ -7,8 +7,6 @@ using Distributed
 # The number of parallel processes to run for each profile likelihood
 n_bins = 16
 addprocs(n_bins)
-# The number of independent minimization runs to perform to reach global minimum
-n_runs = 50
 
 @everywhere begin
     using Statistics
@@ -37,6 +35,10 @@ function main()
     # Reads in the necessary arguments to run script 
     config = ArgParseSettings()
     @add_arg_table config begin
+        "--n_runs"
+        help="Specify the number of runs"
+        arg_type = Float64
+        required = true
         "--param" 
         help = "Specify the parameter" # i.e. ln10As, H0, w0, wa, etc.
         arg_type = String
@@ -85,12 +87,13 @@ function main()
 
     # Parses the arguments
     parsed_args = parse_args(config)
+    n_runs = parsed_args["n_runs"]
     param = parsed_args["param"]
     dataset = parsed_args["dataset"]
     variation = parsed_args["variation"]
     tracer_list = parsed_args["tracer_list"]
     tracer_vector = Vector{String}(split(tracer_list, ","))
-    save_path = "/global/homes/j/jgmorawe/FrequentistExample1/FrequentistExample1/profile_likelihood_results/$(param)_$(dataset)_$(variation)_$(tracer_list)_narrower_range"############################################
+    save_path = "/global/homes/j/jgmorawe/FrequentistExample1/FrequentistExample1/profile_likelihood_results/$(param)_$(dataset)_$(variation)_$(tracer_list)_testing_approximate"############################################
     lower = parsed_args["lower"]
     upper = parsed_args["upper"]
     desi_data_dir = parsed_args["desi_data_dir"]
@@ -140,7 +143,7 @@ function main()
     D_FS_BAO_all = Dict(tracer => iΓ_FS_BAO_all[tracer] * pk_baopost_all[tracer] for tracer in tracers)
     # Adds Lya BAO as a stand alone (since uncorrelated with other tracers)
     Lya_data = [9.891736201237542048e-01, 1.013384755757678057e+00]
-    Lya_cov = [3.294630008635918330e+03 1.295814779172360204e+03; 1.295814779172360204e+03 2.235282696116466013e+03]
+    Lya_cov = inv([3.294630008635918330e+03 1.295814779172360204e+03; 1.295814779172360204e+03 2.235282696116466013e+03])
     Γ_Lya = sqrt(Lya_cov)
     iΓ_Lya = inv(Γ_Lya)
     D_Lya = iΓ_Lya * Lya_data
@@ -228,27 +231,20 @@ function main()
                     "ELG2" => 150*2.1^(1/2)/70, 
                     "QSO" => 150*(10)^(0.7/3)*(2.4)^(1/2)/70)
 
-    cosmo_ranges = Dict("ln10As" => [2.5, 3.5], "ns" => [0.9649, 0.042], "H0" => [60, 80], "ωb" => [0.02218, 0.00055], 
-                    "ωc" => [0.09, 0.2], "w0" => [-2, 0.5], "wa" => [-3, 1.64]) # emulator boundaries (range which minimizer is allowed to move)
-    #eft_ranges = Dict("b1p" => [0, 3], "b2p" =>  [-10, 5], "bsp" => [-10, 10], "alpha0p" => [-100, 400], "alpha2p" => [-400, 200],
-    #                  "st0p" => [-40, 20], "st2p" => [-50, 50]) # boundaries for EFT parameters (range which minimizer is allowed to move)
-    eft_ranges = Dict("b1p_BGS" => [0, 2], "b1p_LRG1" => [0, 2], "b1p_LRG2" => [0, 2], "b1p_LRG3" => [0, 2], "b1p_ELG2" => [0, 2], "b1p_QSO" => [0, 2],
-                      "b2p_BGS" => [-10, 5], "b2p_LRG1" => [-10, 5], "b2p_LRG2" => [-10, 5], "b2p_LRG3" => [-10, 5], "b2p_ELG2" => [-5, 5], "b2p_QSO" => [-5, 5],
-                      "bsp_BGS" => [-10, 10], "bsp_LRG1" => [-10, 10], "bsp_LRG2" => [-10, 10], "bsp_LRG3" => [-10, 10], "bsp_ELG2" => [-5, 5], "bsp_QSO" => [-5, 5],
-                      "alpha0p_BGS" => [-100, 400], "alpha0p_LRG1" => [-100, 300], "alpha0p_LRG2" => [-100, 150], "alpha0p_LRG3" => [-100, 150], "alpha0p_ELG2" => [-100, 300], "alpha0p_QSO" => [-150, 200],
-                      "alpha2p_BGS" => [-400, 400], "alpha2p_LRG1" => [-400, 300], "alpha2p_LRG2" => [-300, 300], "alpha2p_LRG3" => [-400, 300], "alpha2p_ELG2" => [-300, 300], "alpha2p_QSO" => [-400, 300],
-                      "st0p_BGS" => [-40, 30], "st0p_LRG1" => [-30, 20], "st0p_LRG2" => [-20, 20], "st0p_LRG3" => [-15, 10], "st0p_ELG2" => [-10, 10], "st0p_QSO" => [-2, 2],
-                      "st2p_BGS" => [-50, 50], "st2p_LRG1" => [-30, 20], "st2p_LRG2" => [-30, 20], "st2p_LRG3" => [-15, 20], "st2p_ELG2" => [-100, 100], "st2p_QSO" => [-15, 10])
-    
-    #cosmo_ranges = Dict("ln10As" => [2.0, 3.5], "ns" => [0.9649, 0.042], "H0" => [50, 80], "ωb" => [0.02218, 0.00055], 
-    #                    "ωc" => [0.09, 0.25], "w0" => [-2, 0.5], "wa" => [-3, 1.64]) # emulator boundaries (range which minimizer is allowed to move)
-    #eft_ranges = Dict("b1p" => [0, 6], "b2p" =>  [-15, 5], "bsp" => [-10, 15], "alpha0p" => [-100, 400], "alpha2p" => [-800, 200],
-    #                    "st0p" => [-80, 80], "st2p" => [-200, 200]) # boundaries for EFT parameters (range which minimizer is allowed to move)
-    
-    #init_values_ranges = Dict("ln10As" => [2.5, 3.5], "ns" => [0.9649, 0.042], "H0" => [65, 75], "ωb" => [0.02218, 0.00055], 
-    #                          "ωc" => [0.1, 0.15], "w0" => [-1.5, 0], "wa" => [-2, 1],
-    #                          "b1p" => [0, 2], "b2p" =>  [-5, 5], "bsp" => [-5, 10], "alpha0p" => [-50, 100], "alpha2p" => [-150, 150],
-     #                         "st0p" => [-50, 50], "st2p" => [-50, 50]) # range of initial random guesses (narrower than emulator range to have fewer bad runs)
+    cosmo_ranges = Dict("ln10As" => [2.0, 3.5], "ns" => [0.8, 1.1], "H0" => [50, 80], "ωb" => [0.02, 0.025], 
+                        "ωc" => [0.09, 0.25], "w0" => [-2, 0.5], "wa" => [-3, 1.64]) # emulator boundaries (range which minimizer is allowed to move)
+    cosmo_priors = Dict("ns" => [0.9649, 0.042], "ωb" => [0.02218, 0.00055])
+    eft_ranges = Dict("b1p_BGS" => [0, 6], "b1p_LRG1" => [0, 6], "b1p_LRG2" => [0, 6], "b1p_LRG3" => [0, 6], "b1p_ELG2" => [0, 6], "b1p_QSO" => [0, 6],
+                      "b2p_BGS" => [-15, 5], "b2p_LRG1" => [-15, 5], "b2p_LRG2" => [-15, 5], "b2p_LRG3" => [-15, 5], "b2p_ELG2" => [-15, 5], "b2p_QSO" => [-15, 5],
+                      "bsp_BGS" => [-10, 15], "bsp_LRG1" => [-10, 15], "bsp_LRG2" => [-10, 15], "bsp_LRG3" => [-10, 15], "bsp_ELG2" => [-10, 15], "bsp_QSO" => [-10, 15],
+                      "alpha0p_BGS" => [-100, 400], "alpha0p_LRG1" => [-100, 400], "alpha0p_LRG2" => [-100, 400], "alpha0p_LRG3" => [-100, 400], "alpha0p_ELG2" => [-100, 400], "alpha0p_QSO" => [-100, 400],
+                      "alpha2p_BGS" => [-800, 200], "alpha2p_LRG1" => [-800, 200], "alpha2p_LRG2" => [-800, 200], "alpha2p_LRG3" => [-800, 200], "alpha2p_ELG2" => [-800, 200], "alpha2p_QSO" => [-800, 200],
+                      "st0p_BGS" => [-80, 80], "st0p_LRG1" => [-80, 80], "st0p_LRG2" => [-80, 80], "st0p_LRG3" => [-80, 80], "st0p_ELG2" => [-80, 80], "st0p_QSO" => [-80, 80],
+                      "st2p_BGS" => [-200, 200], "st2p_LRG1" => [-200, 200], "st2p_LRG2" => [-200, 200], "st2p_LRG3" => [-200, 200], "st2p_ELG2" => [-200, 200], "st2p_QSO" => [-200, 200])
+    init_values_ranges = Dict("ln10As" => [2.9, 3.2], "ns" => [0.9649, 0.042], "H0" => [69, 72], "ωb" => [0.02218, 0.00055], 
+                              "ωc" => [0.115, 0.14], "w0" => [-1.5, 0], "wa" => [-2, 1],
+                              "b1p" => [0, 2], "b2p" =>  [-5, 5], "bsp" => [-5, 10], "alpha0p" => [-50, 100], "alpha2p" => [-150, 150],
+                              "st0p" => [-50, 50], "st2p" => [-50, 50]) # range of initial random guesses (narrower than emulator range to have fewer bad runs)
     steps = Dict("ln10As" => 0.2, "ns" => 0.05, "H0" => 2, "ωb" => 0.001, "ωc" => 0.01, "w0" => 0.5, "wa" => 1,
                  "b1p" => 0.1, "b2p" => 1, "bsp" => 1, "alpha0p" => 20, "alpha2p" => 50, "st0p" => 5, "st2p" => 5) # preconditioning step sizes
 
@@ -276,6 +272,7 @@ function main()
     @everywhere D_CMB = $D_CMB
     @everywhere iΓ_DESY5SN = $iΓ_DESY5SN
     @everywhere D_DESY5SN = $D_DESY5SN
+    @everywhere z_DESY5SN = $z_DESY5SN
     #@everywhere iΓ_PantheonPlusSN = $iΓ_PantheonPlusSN
     #@everywhere D_PantheonPlusSN = $D_PantheonPlusSN
     #@everywhere iΓ_Union3SN = $iΓ_Union3SN
@@ -286,7 +283,8 @@ function main()
     @everywhere SN_type = $SN_type
 
     @everywhere cosmo_ranges = $cosmo_ranges
-    #@everywhere init_values_ranges = $init_values_ranges
+    @everywhere cosmo_priors = $cosmo_priors
+    @everywhere init_values_ranges = $init_values_ranges
     @everywhere eft_ranges = $eft_ranges
     @everywhere steps = $steps
 
@@ -394,13 +392,12 @@ end
     return 5 .* log10.(DL_SN) .+ 25 .+ Mb
 end
 
-
 @everywhere @model function model_FS(D_FS_all)
     # Draws cosmological parameters
     ln10As ~ Uniform(cosmo_ranges["ln10As"][1], cosmo_ranges["ln10As"][2])
-    ns ~ Truncated(Normal(cosmo_ranges["ns"][1], cosmo_ranges["ns"][2]), 0.8, 1.1)               # might need to adjust if using MAP
+    ns ~ Truncated(Normal(cosmo_priors["ns"][1], cosmo_priors["ns"][2]), 0.8, 1.1)               # might need to adjust if using MAP
     H0 ~ Uniform(cosmo_ranges["H0"][1], cosmo_ranges["H0"][2])
-    ωb ~ Truncated(Normal(cosmo_ranges["ωb"][1], cosmo_ranges["ωb"][2]), 0.02, 0.025)                # might need to adjust if using MAP
+    ωb ~ Truncated(Normal(cosmo_priors["ωb"][1], cosmo_priors["ωb"][2]), 0.02, 0.025)                # might need to adjust if using MAP
     ωc ~ Uniform(cosmo_ranges["ωc"][1], cosmo_ranges["ωc"][2])
     w0 ~ Uniform(cosmo_ranges["w0"][1], cosmo_ranges["w0"][2])
     wa ~ Uniform(cosmo_ranges["wa"][1], cosmo_ranges["wa"][2])
@@ -507,9 +504,9 @@ end
 @everywhere @model function model_BAO(D_BAO_all, D_Lya)
     # Draws cosmological parameters
     ln10As ~ Uniform(cosmo_ranges["ln10As"][1], cosmo_ranges["ln10As"][2])
-    ns ~ Truncated(Normal(cosmo_ranges["ns"][1], cosmo_ranges["ns"][2]), 0.8, 1.1)               # might need to adjust if using MAP
+    ns ~ Truncated(Normal(cosmo_priors["ns"][1], cosmo_priors["ns"][2]), 0.8, 1.1)               # might need to adjust if using MAP
     H0 ~ Uniform(cosmo_ranges["H0"][1], cosmo_ranges["H0"][2])
-    ωb ~ Truncated(Normal(cosmo_ranges["ωb"][1], cosmo_ranges["ωb"][2]), 0.02, 0.025)                # might need to adjust if using MAP
+    ωb ~ Truncated(Normal(cosmo_priors["ωb"][1], cosmo_priors["ωb"][2]), 0.02, 0.025)                # might need to adjust if using MAP
     ωc ~ Uniform(cosmo_ranges["ωc"][1], cosmo_ranges["ωc"][2])
     w0 ~ Uniform(cosmo_ranges["w0"][1], cosmo_ranges["w0"][2])
     wa ~ Uniform(cosmo_ranges["wa"][1], cosmo_ranges["wa"][2])
@@ -525,13 +522,12 @@ end
     D_Lya ~ MvNormal(prediction_Lya, I)
 end
 
-
 @everywhere @model function model_FS_BAO(D_FS_BAO_all, D_Lya)
     # Draws cosmological parameters
     ln10As ~ Uniform(cosmo_ranges["ln10As"][1], cosmo_ranges["ln10As"][2])
-    ns ~ Truncated(Normal(cosmo_ranges["ns"][1], cosmo_ranges["ns"][2]), 0.8, 1.1)              # might need to adjust if using MAP
+    ns ~ Truncated(Normal(cosmo_priors["ns"][1], cosmo_priors["ns"][2]), 0.8, 1.1)              # might need to adjust if using MAP
     H0 ~ Uniform(cosmo_ranges["H0"][1], cosmo_ranges["H0"][2])
-    ωb ~ Truncated(Normal(cosmo_ranges["ωb"][1], cosmo_ranges["ωb"][2]), 0.02, 0.025)               # might need to adjust if using MAP
+    ωb ~ Truncated(Normal(cosmo_priors["ωb"][1], cosmo_priors["ωb"][2]), 0.02, 0.025)               # might need to adjust if using MAP
     ωc ~ Uniform(cosmo_ranges["ωc"][1], cosmo_ranges["ωc"][2])
     w0 ~ Uniform(cosmo_ranges["w0"][1], cosmo_ranges["w0"][2])
     wa ~ Uniform(cosmo_ranges["wa"][1], cosmo_ranges["wa"][2])
@@ -639,367 +635,252 @@ end
     D_Lya ~ MvNormal(prediction_Lya, I)
 end
 
-#@everywhere @model function model_BAO(D_BAO_all, iΓ_BAO_all, D_Lya, iΓ_Lya, fixed_value, param, variation, emu_BAO, tracer_vector, zeff_used)
-#    # Draws cosmological parameters
-#    cosmo_params = Vector{Any}(undef, 7) # 7 cosmological parameters: ln10As, ns, H0, ωb, ωc, w0, wa
-#    if variation == "LCDM"
-#        cosmo_params_list = ["ln10As", "ns", "H0", "ωb", "ωc"]
-#        cosmo_ranges = Dict("ln10As" => [2.0, 3.5], "ns" => [0.8, 1.1], "H0" => [50, 80], "ωb" => [0.02, 0.025], "ωc" => [0.09, 0.25])
-#        cosmo_params[6], cosmo_params[7] = -1, 0 # sets w0, wa = -1, 0 for LCDM specifically
-#    elseif variation == "w0waCDM"
-#        cosmo_params_list = ["ln10As", "ns", "H0", "ωb", "ωc", "w0", "wa"]
-#        cosmo_ranges = Dict("ln10As" => [2.0, 3.5], "ns" => [0.8, 1.1], "H0" => [50, 80], "ωb" => [0.02, 0.025], "ωc" => [0.09, 0.25],
-#                            "w0" => [-2, 0.5], "wa" => [-3, 1.64])
-#    end
-#    for i in 1:length(cosmo_params_list)
-#        if cosmo_params_list[i] == param
-#            cosmo_params[i] = fixed_value
-#        else
-#            cosmo_params[i] ~ Uniform(cosmo_ranges[cosmo_params_list[i]][1], cosmo_ranges[cosmo_params_list[i]][2])
-#        end
-#    end
-#    # Constructs the parameter vector given the samples drawn above
-#    cosmo_params = [cosmo_params[1], cosmo_params[2], cosmo_params[3], cosmo_params[4], 
-#                    cosmo_params[5], cosmo_params[6], cosmo_params[7]]
-#    # Constructs theory vector and associates data vector with the model
-#    for tracer in tracer_vector
-#        prediction = iΓ_BAO_all[tracer] * theory_BAO(cosmo_params, emu_BAO, zeff_used[tracer], tracer)
-#        D_BAO_all[tracer] ~ MvNormal(prediction, I)
-#    end
-#    # Adds Lya BAO as a stand alone (since uncorrelated with other tracers)
-#    prediction = iΓ_Lya * theory_BAO(cosmo_params, emu_BAO, 2.33, "Lya")
-#    D_Lya ~ MvNormal(prediction, I)
-#    # Adds in the BBN/ns10 priors (since not including CMB)
-#    ns_prior = [0.9649, 0.042]
-#    ωb_prior = [0.02218, 0.00055]
-#    sigma_ωb = ωb_prior[2]
-#    dωb = cosmo_params[4] - ωb_prior[1]
-#    sigma_ns = ns_prior[2]
-#    dns = cosmo_params[2] - ns_prior[1]
-#    Turing.@addlogprob! - 0.5 * dωb^2/sigma_ωb^2
-#    Turing.@addlogprob! - 0.5 * dns^2/sigma_ns^2
-#    return nothing
-#end
+@everywhere @model function model_FS_BAO_CMB(D_FS_BAO_all, D_Lya, D_CMB)
+    # Draws cosmological parameters
+    ln10As ~ Uniform(cosmo_ranges["ln10As"][1], cosmo_ranges["ln10As"][2])
+    ns ~ Uniform(cosmo_ranges["ns"][1], cosmo_ranges["ns"][2])             # might need to adjust if using MAP
+    H0 ~ Uniform(cosmo_ranges["H0"][1], cosmo_ranges["H0"][2])
+    ωb ~ Uniform(cosmo_ranges["ωb"][1], cosmo_ranges["ωb"][2])           # might need to adjust if using MAP
+    ωc ~ Uniform(cosmo_ranges["ωc"][1], cosmo_ranges["ωc"][2])
+    w0 ~ Uniform(cosmo_ranges["w0"][1], cosmo_ranges["w0"][2])
+    wa ~ Uniform(cosmo_ranges["wa"][1], cosmo_ranges["wa"][2])
+    # Parameters for CMB contribution
+    τ ~ Normal(0.0506, 0.0086)
+    mν = 0.06
+    yₚ ~ Normal(1.0, 0.0025)
+    # Constructs parameter vector given samples drawn
+    cosmo_params_FS_BAO = [ln10As, ns, H0, ωb, ωc, w0, wa]
+    cosmo_params_CMB = [ln10As, ns, H0, ωb, ωc, τ, mν, w0, wa]
+    # Extracts f and sigma8 values for each tracer using BAO emulator
+    fsigma8_info = Effort.get_BAO(cosmo_params_FS_BAO, BAO_emu)
+    f_all = Dict("BGS" => fsigma8_info[2], "LRG1" => fsigma8_info[3], "LRG2" => fsigma8_info[4], "LRG3" => fsigma8_info[5], 
+                "ELG2" => fsigma8_info[7], "QSO" => fsigma8_info[8])
+    sigma8_all = Dict("BGS" => fsigma8_info[9], "LRG1" => fsigma8_info[10], "LRG2" => fsigma8_info[11], "LRG3" => fsigma8_info[12], 
+                    "ELG2" => fsigma8_info[14], "QSO" => fsigma8_info[15])
+    # Draws EFT nuisance parameters
+    # Iterates through each tracer
+    for tracer in tracer_vector
+        if tracer == "BGS"
+            b1p_BGS ~ Uniform(eft_ranges["b1p_BGS"][1], eft_ranges["b1p_BGS"][2])
+            b2p_BGS ~ Uniform(eft_ranges["b2p_BGS"][1], eft_ranges["b2p_BGS"][2])
+            b3p_BGS = 0
+            bsp_BGS ~ Uniform(eft_ranges["bsp_BGS"][1], eft_ranges["bsp_BGS"][2])
+            alpha0p_BGS ~ Uniform(eft_ranges["alpha0p_BGS"][1], eft_ranges["alpha0p_BGS"][2])
+            alpha2p_BGS ~ Uniform(eft_ranges["alpha2p_BGS"][1], eft_ranges["alpha2p_BGS"][2])
+            alpha4p_BGS = 0
+            st0p_BGS ~ Uniform(eft_ranges["st0p_BGS"][1], eft_ranges["st0p_BGS"][2])
+            st2p_BGS ~ Uniform(eft_ranges["st2p_BGS"][1], eft_ranges["st2p_BGS"][2])
+            st4p_BGS = 0
+            eft_params_physical = [b1p_BGS, b2p_BGS, b3p_BGS, bsp_BGS, alpha0p_BGS, alpha2p_BGS, alpha4p_BGS, st0p_BGS, st2p_BGS, st4p_BGS]
+        elseif tracer == "LRG1"
+            b1p_LRG1 ~ Uniform(eft_ranges["b1p_LRG1"][1], eft_ranges["b1p_LRG1"][2])
+            b2p_LRG1 ~ Uniform(eft_ranges["b2p_LRG1"][1], eft_ranges["b2p_LRG1"][2])
+            b3p_LRG1 = 0
+            bsp_LRG1 ~ Uniform(eft_ranges["bsp_LRG1"][1], eft_ranges["bsp_LRG1"][2])
+            alpha0p_LRG1 ~ Uniform(eft_ranges["alpha0p_LRG1"][1], eft_ranges["alpha0p_LRG1"][2])
+            alpha2p_LRG1 ~ Uniform(eft_ranges["alpha2p_LRG1"][1], eft_ranges["alpha2p_LRG1"][2])
+            alpha4p_LRG1 = 0
+            st0p_LRG1 ~ Uniform(eft_ranges["st0p_LRG1"][1], eft_ranges["st0p_LRG1"][2])
+            st2p_LRG1 ~ Uniform(eft_ranges["st2p_LRG1"][1], eft_ranges["st2p_LRG1"][2])
+            st4p_LRG1 = 0
+            eft_params_physical = [b1p_LRG1, b2p_LRG1, b3p_LRG1, bsp_LRG1, alpha0p_LRG1, alpha2p_LRG1, alpha4p_LRG1, st0p_LRG1, st2p_LRG1, st4p_LRG1]
+        elseif tracer == "LRG2"
+            b1p_LRG2 ~ Uniform(eft_ranges["b1p_LRG2"][1], eft_ranges["b1p_LRG2"][2])
+            b2p_LRG2 ~ Uniform(eft_ranges["b2p_LRG2"][1], eft_ranges["b2p_LRG2"][2])
+            b3p_LRG2 = 0
+            bsp_LRG2 ~ Uniform(eft_ranges["bsp_LRG2"][1], eft_ranges["bsp_LRG2"][2])
+            alpha0p_LRG2 ~ Uniform(eft_ranges["alpha0p_LRG2"][1], eft_ranges["alpha0p_LRG2"][2])
+            alpha2p_LRG2 ~ Uniform(eft_ranges["alpha2p_LRG2"][1], eft_ranges["alpha2p_LRG2"][2])
+            alpha4p_LRG2 = 0
+            st0p_LRG2 ~ Uniform(eft_ranges["st0p_LRG2"][1], eft_ranges["st0p_LRG2"][2])
+            st2p_LRG2 ~ Uniform(eft_ranges["st2p_LRG2"][1], eft_ranges["st2p_LRG2"][2])
+            st4p_LRG2 = 0
+            eft_params_physical = [b1p_LRG2, b2p_LRG2, b3p_LRG2, bsp_LRG2, alpha0p_LRG2, alpha2p_LRG2, alpha4p_LRG2, st0p_LRG2, st2p_LRG2, st4p_LRG2]
+        elseif tracer == "LRG3"
+            b1p_LRG3 ~ Uniform(eft_ranges["b1p_LRG3"][1], eft_ranges["b1p_LRG3"][2])
+            b2p_LRG3 ~ Uniform(eft_ranges["b2p_LRG3"][1], eft_ranges["b2p_LRG3"][2])
+            b3p_LRG3 = 0
+            bsp_LRG3 ~ Uniform(eft_ranges["bsp_LRG3"][1], eft_ranges["bsp_LRG3"][2])
+            alpha0p_LRG3 ~ Uniform(eft_ranges["alpha0p_LRG3"][1], eft_ranges["alpha0p_LRG3"][2])
+            alpha2p_LRG3 ~ Uniform(eft_ranges["alpha2p_LRG3"][1], eft_ranges["alpha2p_LRG3"][2])
+            alpha4p_LRG3 = 0
+            st0p_LRG3 ~ Uniform(eft_ranges["st0p_LRG3"][1], eft_ranges["st0p_LRG3"][2])
+            st2p_LRG3 ~ Uniform(eft_ranges["st2p_LRG3"][1], eft_ranges["st2p_LRG3"][2])
+            st4p_LRG3 = 0
+            eft_params_physical = [b1p_LRG3, b2p_LRG3, b3p_LRG3, bsp_LRG3, alpha0p_LRG3, alpha2p_LRG3, alpha4p_LRG3, st0p_LRG3, st2p_LRG3, st4p_LRG3]
+        elseif tracer == "ELG2"
+            b1p_ELG2 ~ Uniform(eft_ranges["b1p_ELG2"][1], eft_ranges["b1p_ELG2"][2])
+            b2p_ELG2 ~ Uniform(eft_ranges["b2p_ELG2"][1], eft_ranges["b2p_ELG2"][2])
+            b3p_ELG2 = 0
+            bsp_ELG2 ~ Uniform(eft_ranges["bsp_ELG2"][1], eft_ranges["bsp_ELG2"][2])
+            alpha0p_ELG2 ~ Uniform(eft_ranges["alpha0p_ELG2"][1], eft_ranges["alpha0p_ELG2"][2])
+            alpha2p_ELG2 ~ Uniform(eft_ranges["alpha2p_ELG2"][1], eft_ranges["alpha2p_ELG2"][2])
+            alpha4p_ELG2 = 0
+            st0p_ELG2 ~ Uniform(eft_ranges["st0p_ELG2"][1], eft_ranges["st0p_ELG2"][2])
+            st2p_ELG2 ~ Uniform(eft_ranges["st2p_ELG2"][1], eft_ranges["st2p_ELG2"][2])
+            st4p_ELG2 = 0
+            eft_params_physical = [b1p_ELG2, b2p_ELG2, b3p_ELG2, bsp_ELG2, alpha0p_ELG2, alpha2p_ELG2, alpha4p_ELG2, st0p_ELG2, st2p_ELG2, st4p_ELG2]
+        elseif tracer == "QSO"
+            b1p_QSO ~ Uniform(eft_ranges["b1p_QSO"][1], eft_ranges["b1p_QSO"][2])
+            b2p_QSO ~ Uniform(eft_ranges["b2p_QSO"][1], eft_ranges["b2p_QSO"][2])
+            b3p_QSO = 0
+            bsp_QSO ~ Uniform(eft_ranges["bsp_QSO"][1], eft_ranges["bsp_QSO"][2])
+            alpha0p_QSO ~ Uniform(eft_ranges["alpha0p_QSO"][1], eft_ranges["alpha0p_QSO"][2])
+            alpha2p_QSO ~ Uniform(eft_ranges["alpha2p_QSO"][1], eft_ranges["alpha2p_QSO"][2])
+            alpha4p_QSO = 0
+            st0p_QSO ~ Uniform(eft_ranges["st0p_QSO"][1], eft_ranges["st0p_QSO"][2])
+            st2p_QSO ~ Uniform(eft_ranges["st2p_QSO"][1], eft_ranges["st2p_QSO"][2])
+            st4p_QSO = 0
+            eft_params_physical = [b1p_QSO, b2p_QSO, b3p_QSO, bsp_QSO, alpha0p_QSO, alpha2p_QSO, alpha4p_QSO, st0p_QSO, st2p_QSO, st4p_QSO]            
+        end
+        b1p, b2p, b3p, bsp, alpha0p, alpha2p, alpha4p, st0p, st2p, st4p = eft_params_physical
+        # Converts physical to Eulerian basis
+        f, sigma8 = f_all[tracer], sigma8_all[tracer]
+        b1l = b1p/sigma8-1; b2l = b2p/sigma8^2; b3l = b3p/sigma8^3; bsl = bsp/sigma8^2
+        b1e = b1l+1; b2e = 8/21*b1l+b2l; bse = bsl-2/7*b1l; b3e = 3*b3l+b1l
+        alpha0e = (1+b1l)^2*alpha0p; alpha2e = f*(1+b1l)*(alpha0p+alpha2p); alpha4e = f*(f*alpha2p+(1+b1l)*alpha4p); alpha6e = f^2*alpha4p
+        st0e = st0p/(nd_all[tracer]); st2e = st2p/(nd_all[tracer])*(fsat_all[tracer])*(sigv_all[tracer])^2; st4e = st4p/(nd_all[tracer])*(fsat_all[tracer])*(sigv_all[tracer])^4
+        eft_params = [b1e, b2e, b3e, bse, alpha0e, alpha2e, alpha4e, alpha6e, st0e, st2e, st4e]
+        # Combines cosmological and EFT parameters into one theory vector
+        cosmo_eft_params = vcat(cosmo_params_FS_BAO, eft_params)
+        # Calculates FS/BAO theory vector given parameters
+        prediction_FS_BAO = iΓ_FS_BAO_all[tracer]*vcat(wmat_all[tracer]*theory_FS(cosmo_eft_params, FS_emus[tracer], kin_all[tracer]),
+                                                    theory_BAO(cosmo_params_FS_BAO, BAO_emu, zeff_all[tracer], tracer))
+        D_FS_BAO_all[tracer] ~ MvNormal(prediction_FS_BAO, I)
+    end
+    # Adds Lya BAO as a stand alone (since uncorrelated with other tracers)
+    prediction_Lya = iΓ_Lya * theory_BAO(cosmo_params_FS_BAO, BAO_emu, 2.33, "Lya")
+    D_Lya ~ MvNormal(prediction_Lya, I)
+    # Adds CMB contribution
+    prediction_CMB = iΓ_CMB * theory_CMB(cosmo_params_CMB, CMB_emus) ./ (yₚ^2)
+    D_CMB ~ MvNormal(prediction_CMB, I)
+end
 
-#@everywhere @model function model_FS_BAO(D_FS_BAO_all, iΓ_FS_BAO_all, D_Lya, iΓ_Lya, fixed_value, param, variation, emus_FS, emu_BAO, tracer_vector, zeff_used, nd_used, fsat_used, sigv_used, kin_used, wmat_used)
-#    # Draws cosmological parameters
-#    cosmo_params = Vector{Any}(undef, 7) # 7 cosmological parameters: ln10As, ns, H0, ωb, ωc, w0, wa
-#    if variation == "LCDM"
-#        cosmo_params_list = ["ln10As", "ns", "H0", "ωb", "ωc"]
-#        cosmo_ranges = Dict("ln10As" => [2.0, 3.5], "ns" => [0.8, 1.1], "H0" => [50, 80], "ωb" => [0.02, 0.025], "ωc" => [0.09, 0.25])
-#        cosmo_params[6], cosmo_params[7] = -1, 0 # sets w0, wa = -1, 0 for LCDM specifically
-#    elseif variation == "w0waCDM"
-#        cosmo_params_list = ["ln10As", "ns", "H0", "ωb", "ωc", "w0", "wa"]
-#        cosmo_ranges = Dict("ln10As" => [2.0, 3.5], "ns" => [0.8, 1.1], "H0" => [50, 80], "ωb" => [0.02, 0.025], "ωc" => [0.09, 0.25],
-#                            "w0" => [-2, 0.5], "wa" => [-3, 1.64])
-#    end
-#    for i in 1:length(cosmo_params_list)
-#        if cosmo_params_list[i] == param
-#            cosmo_params[i] = fixed_value
-#        else
-#            cosmo_params[i] ~ Uniform(cosmo_ranges[cosmo_params_list[i]][1], cosmo_ranges[cosmo_params_list[i]][2])
-#        end
-#    end
-#    # Constructs the parameter vector given the samples drawn above
-#    cosmo_params = [cosmo_params[1], cosmo_params[2], cosmo_params[3], cosmo_params[4], 
-#                    cosmo_params[5], cosmo_params[6], cosmo_params[7]]
-#    # Extracts f and sigma8 values for each of the tracers using BAO emulator
-#    f_sigma8 = Effort.get_BAO(cosmo_params, emu_BAO)
-#    f_all = Dict("BGS" => f_sigma8[2], "LRG1" => f_sigma8[3], "LRG2" => f_sigma8[4], "LRG3" => f_sigma8[5], "ELG2" => f_sigma8[7], "QSO" => f_sigma8[8])
-#    sigma8_all = Dict("BGS" => f_sigma8[9], "LRG1" => f_sigma8[10], "LRG2" => f_sigma8[11], "LRG3" => f_sigma8[12], "ELG2" => f_sigma8[14], "QSO" => f_sigma8[15])
-#    # Draws EFT nuisance parameters
-#    eft_ranges = Dict("b1p" => [0, 6], "b2p" =>  [-15, 5], "bsp" => [-10, 15], "alpha0p" => [-100, 400], "alpha2p" => [-800, 200], "st0p" => [-80, 80], "st2p" => [-200, 200])
-#    b1p_vector = Vector{Any}(undef, length(tracer_vector))
-#    b2p_vector = Vector{Any}(undef, length(tracer_vector))
-#    b3p_vector = Vector{Any}(undef, length(tracer_vector))
-#    bsp_vector = Vector{Any}(undef, length(tracer_vector))
-#    alpha0p_vector = Vector{Any}(undef, length(tracer_vector))
-#    alpha2p_vector = Vector{Any}(undef, length(tracer_vector))
-#    alpha4p_vector = Vector{Any}(undef, length(tracer_vector))
-#    st0p_vector = Vector{Any}(undef, length(tracer_vector))
-#    st2p_vector = Vector{Any}(undef, length(tracer_vector))
-#    st4p_vector = Vector{Any}(undef, length(tracer_vector))
-#    # Iterates through each of the tracers
-#    for i in 1:length(tracer_vector)
-#        tracer = tracer_vector[i]
-#        b1p_vector[i] ~ Uniform(eft_ranges["b1p"][1], eft_ranges["b1p"][2])
-#        b2p_vector[i] ~ Uniform(eft_ranges["b2p"][1], eft_ranges["b2p"][2])
-#        b3p_vector[i] = 0 
-#        bsp_vector[i] ~ Uniform(eft_ranges["bsp"][1], eft_ranges["bsp"][2])
-#        alpha0p_vector[i] ~ Uniform(eft_ranges["alpha0p"][1], eft_ranges["alpha0p"][2])
-#        alpha2p_vector[i] ~ Uniform(eft_ranges["alpha2p"][1], eft_ranges["alpha2p"][2])
-#        alpha4p_vector[i] = 0
-#        st0p_vector[i] ~ Uniform(eft_ranges["st0p"][1], eft_ranges["st0p"][2])
-#        st2p_vector[i] ~ Uniform(eft_ranges["st2p"][1], eft_ranges["st2p"][2])
-#        st4p_vector[i] = 0
-#        b1p, b2p, b3p, bsp, alpha0p, alpha2p, alpha4p, st0p, st2p, st4p = [b1p_vector[i], b2p_vector[i], b3p_vector[i], bsp_vector[i],
-#                                                                            alpha0p_vector[i], alpha2p_vector[i], alpha4p_vector[i], st0p_vector[i], st2p_vector[i], st4p_vector[i]]
-#        # Converts physical to Eulerian basis
-#        f, sigma8 = f_all[tracer], sigma8_all[tracer]
-#        b1l = b1p/sigma8-1; b2l = b2p/sigma8^2; b3l = b3p/sigma8^3; bsl = bsp/sigma8^2
-#        b1e = b1l+1; b2e = 8/21*b1l+b2l; bse = bsl-2/7*b1l; b3e = 3*b3l+b1l
-#        alpha0e = (1+b1l)^2*alpha0p; alpha2e = f*(1+b1l)*(alpha0p+alpha2p); alpha4e = f*(f*alpha2p+(1+b1l)*alpha4p); alpha6e = f^2*alpha4p
-#        st0e = st0p/(nd_used[tracer]); st2e = st2p/(nd_used[tracer])*(fsat_used[tracer])*(sigv_used[tracer])^2; st4e = st4p/(nd_used[tracer])*(fsat_used[tracer])*(sigv_used[tracer])^4
-#        eft_params = [b1e, b2e, b3e, bse, alpha0e, alpha2e, alpha4e, alpha6e, st0e, st2e, st4e]
-#        # Combines cosmological and EFT parameters into one vector for the FS theory function
-#        cosmo_eft_params = vcat(cosmo_params, eft_params)
-#        # Calculates FS-BAO joint theory vector given the parameters
-#        prediction = iΓ_FS_BAO_all[tracer] * vcat(wmat_used[tracer]*theory_FS(cosmo_eft_params, emus_FS[tracer], kin_used[tracer]), 
-#                                                  theory_BAO(cosmo_params, emu_BAO, zeff_used[tracer], tracer))
-#        D_FS_BAO_all[tracer] ~ MvNormal(prediction, I)
-#    end
-#    # Adds Lya BAO as a stand alone (since uncorrelated with other tracers)
-#    prediction = iΓ_Lya * theory_BAO(cosmo_params, emu_BAO, 2.33, "Lya")
-#    D_Lya ~ MvNormal(prediction, I)
-#    # Adds in the BBN/ns10 priors (since not including CMB)
-#    ns_prior = [0.9649, 0.042]
-#    ωb_prior = [0.02218, 0.00055]
-#    sigma_ωb = ωb_prior[2]
-#    dωb = cosmo_params[4] - ωb_prior[1]
-#    sigma_ns = ns_prior[2]
-#    dns = cosmo_params[2] - ns_prior[1]
-#    Turing.@addlogprob! - 0.5 * dωb^2/sigma_ωb^2
-#    Turing.@addlogprob! - 0.5 * dns^2/sigma_ns^2
-#    return nothing
-#end
-
-#@everywhere @model function model_CMB(D_CMB, iΓ_CMB, fixed_value, param, variation, emus_CMB)
-#    # Draws cosmological parameters
-#    cosmo_params = Vector{Any}(undef, 9) # 9 cosmological parameters: ln10As, ns, H0, ωb, ωc, τ, w0, wa, mν (reorders later)
-#    cosmo_params[9] = 0.06 # fixes the neutrino mass
-#    if variation == "LCDM"
-#        cosmo_params_list = ["ln10As", "ns", "H0", "ωb", "ωc", "τ"]
-#        cosmo_ranges = Dict("ln10As" => [2.5, 3.5], "ns" => [0.88, 1.05], "H0" => [50, 80], "ωb" => [0.02, 0.025], "ωc" => [0.09, 0.2], "τ" => [0.02, 0.12])
-#        cosmo_params[7], cosmo_params[8] = -1, 0 # sets w0, wa = -1, 0 for LCDM specifically
-#    elseif variation == "w0waCDM"
-#        cosmo_params_list = ["ln10As", "ns", "H0", "ωb", "ωc", "τ", "w0", "wa"]
-#        cosmo_ranges = Dict("ln10As" => [2.5, 3.5], "ns" => [0.88, 1.05], "H0" => [50, 80], "ωb" => [0.02, 0.025], "ωc" => [0.09, 0.2], "τ" => [0.02, 0.12],
-#                            "w0" => [-2, 0.49], "wa" => [-3, 1.64])
-#    end
-#    for i in 1:length(cosmo_params_list)
-#        if cosmo_params_list[i] == param
-#            cosmo_params[i] = fixed_value
-#        else
-#            if cosmo_params_list[i] == "τ"
-#                cosmo_params[i] ~ Normal(0.0506, 0.0086)
-#            else
-#                cosmo_params[i] ~ Uniform(cosmo_ranges[cosmo_params_list[i]][1], cosmo_ranges[cosmo_params_list[i]][2])
-#            end
-#        end
-#    end
-#    yₚ ~ Normal(1.0, 0.0025)
-#    # Constructs the parameter vector given the samples drawn above (changes order to match the emulator)
-#    cosmo_params = [cosmo_params[1], cosmo_params[2], cosmo_params[3], cosmo_params[4], cosmo_params[5],
-#                    cosmo_params[6], cosmo_params[9], cosmo_params[7], cosmo_params[8]]
-#    # Constructs theory vector and associates data vector with model
-#    prediction = iΓ_CMB * theory_CMB(cosmo_params, emus_CMB)
-#    D_CMB ~ MvNormal(prediction, I)
-#    return nothing
-#end
-#                
-#@everywhere @model function model_FS_BAO_CMB(D_FS_BAO_all, iΓ_FS_BAO_all, D_Lya, iΓ_Lya, D_CMB, iΓ_CMB, fixed_value, param, variation, emus_FS, emu_BAO, emus_CMB, tracer_vector, zeff_used, nd_used, fsat_used, sigv_used, kin_used, wmat_used)
-#    # Draws cosmological parameters
-#    cosmo_params = Vector{Any}(undef, 9) # 9 cosmological parameters: ln10As, ns, H0, ωb, ωc, τ, w0, wa, mν (reorders later)
-#    cosmo_params[9] = 0.06 # fixes neutrino mass
-#    if variation == "LCDM"
-#        cosmo_params_list = ["ln10As", "ns", "H0", "ωb", "ωc", "τ"]
-#        cosmo_ranges = Dict("ln10As" => [2.5, 3.5], "ns" => [0.88, 1.05], "H0" => [50, 80], "ωb" => [0.02, 0.025], "ωc" => [0.09, 0.2], "τ" => [0.02, 0.12])
-#        cosmo_params[7], cosmo_params[8] = -1, 0 # sets w0, wa = -1, 0 for LCDM specifically
-#    elseif variation == "w0waCDM"
-#        cosmo_params_list = ["ln10As", "ns", "H0", "ωb", "ωc", "τ", "w0", "wa"]
-#        cosmo_ranges = Dict("ln10As" => [2.5, 3.5], "ns" => [0.88, 1.05], "H0" => [50, 80], "ωb" => [0.02, 0.025], "ωc" => [0.09, 0.2], "τ" => [0.02, 0.12],
-#                            "w0" => [-2, 0.49], "wa" => [-3, 1.64])
-#    end
-#    for i in 1:length(cosmo_params_list)
-#        if cosmo_params_list[i] == param
-#            cosmo_params[i] = fixed_value
-#        else
-#            if cosmo_params_list[i] == "τ"
-#                cosmo_params[i] ~ Normal(0.0506, 0.0086)
-#            else
-#                cosmo_params[i] ~ Uniform(cosmo_ranges[cosmo_params_list[i]][1], cosmo_ranges[cosmo_params_list[i]][2])
-#            end
-#        end
-#    end
-#    yₚ ~ Normal(1.0, 0.0025)
-#    # Constructs the parameter vector given the samples drawn above (changes order to match the emulator)
-#    cosmo_params_LSS = [cosmo_params[1], cosmo_params[2], cosmo_params[3], cosmo_params[4], cosmo_params[5], 
-#                        cosmo_params[7], cosmo_params[8]]
-#    cosmo_params_CMB = [cosmo_params[1], cosmo_params[2], cosmo_params[3], cosmo_params[4], cosmo_params[5],
-#                        cosmo_params[6], cosmo_params[9], cosmo_params[7], cosmo_params[8]]
-#    # Extracts f and sigma8 values for each of the tracers using BAO emulator
-#    f_sigma8 = Effort.get_BAO(cosmo_params_LSS, emu_BAO)
-#    f_all = Dict("BGS" => f_sigma8[2], "LRG1" => f_sigma8[3], "LRG2" => f_sigma8[4], "LRG3" => f_sigma8[5], "ELG2" => f_sigma8[7], "QSO" => f_sigma8[8])
-#    sigma8_all = Dict("BGS" => f_sigma8[9], "LRG1" => f_sigma8[10], "LRG2" => f_sigma8[11], "LRG3" => f_sigma8[12], "ELG2" => f_sigma8[14], "QSO" => f_sigma8[15])
-#    # Draws EFT nuisance parameters
-#    eft_ranges = Dict("b1p" => [0, 6], "b2p" =>  [-15, 5], "bsp" => [-10, 15], "alpha0p" => [-100, 400], "alpha2p" => [-800, 200], "st0p" => [-80, 80], "st2p" => [-200, 200])
-#    b1p_vector = Vector{Any}(undef, length(tracer_vector))
-#    b2p_vector = Vector{Any}(undef, length(tracer_vector))
-#    b3p_vector = Vector{Any}(undef, length(tracer_vector))
-#    bsp_vector = Vector{Any}(undef, length(tracer_vector))
-#    alpha0p_vector = Vector{Any}(undef, length(tracer_vector))
-#    alpha2p_vector = Vector{Any}(undef, length(tracer_vector))
-#    alpha4p_vector = Vector{Any}(undef, length(tracer_vector))
-#    st0p_vector = Vector{Any}(undef, length(tracer_vector))
-#    st2p_vector = Vector{Any}(undef, length(tracer_vector))
-#    st4p_vector = Vector{Any}(undef, length(tracer_vector))
-#    # Iterates through each of the tracers
-#    for i in 1:length(tracer_vector)
-#        tracer = tracer_vector[i]
-#        b1p_vector[i] ~ Uniform(eft_ranges["b1p"][1], eft_ranges["b1p"][2])
-#        b2p_vector[i] ~ Uniform(eft_ranges["b2p"][1], eft_ranges["b2p"][2])
-#        b3p_vector[i] = 0 
-#        bsp_vector[i] ~ Uniform(eft_ranges["bsp"][1], eft_ranges["bsp"][2])
-#        alpha0p_vector[i] ~ Uniform(eft_ranges["alpha0p"][1], eft_ranges["alpha0p"][2])
-#        alpha2p_vector[i] ~ Uniform(eft_ranges["alpha2p"][1], eft_ranges["alpha2p"][2])
-#        alpha4p_vector[i] = 0
-#        st0p_vector[i] ~ Uniform(eft_ranges["st0p"][1], eft_ranges["st0p"][2])
-#        st2p_vector[i] ~ Uniform(eft_ranges["st2p"][1], eft_ranges["st2p"][2])
-#        st4p_vector[i] = 0
-#        b1p, b2p, b3p, bsp, alpha0p, alpha2p, alpha4p, st0p, st2p, st4p = [b1p_vector[i], b2p_vector[i], b3p_vector[i], bsp_vector[i],
-#                                                                            alpha0p_vector[i], alpha2p_vector[i], alpha4p_vector[i], st0p_vector[i], st2p_vector[i], st4p_vector[i]]
-#        # Converts physical to Eulerian basis
-#        f, sigma8 = f_all[tracer], sigma8_all[tracer]
-#        b1l = b1p/sigma8-1; b2l = b2p/sigma8^2; b3l = b3p/sigma8^3; bsl = bsp/sigma8^2
-#        b1e = b1l+1; b2e = 8/21*b1l+b2l; bse = bsl-2/7*b1l; b3e = 3*b3l+b1l
-#        alpha0e = (1+b1l)^2*alpha0p; alpha2e = f*(1+b1l)*(alpha0p+alpha2p); alpha4e = f*(f*alpha2p+(1+b1l)*alpha4p); alpha6e = f^2*alpha4p
-#        st0e = st0p/(nd_used[tracer]); st2e = st2p/(nd_used[tracer])*(fsat_used[tracer])*(sigv_used[tracer])^2; st4e = st4p/(nd_used[tracer])*(fsat_used[tracer])*(sigv_used[tracer])^4
-#        eft_params = [b1e, b2e, b3e, bse, alpha0e, alpha2e, alpha4e, alpha6e, st0e, st2e, st4e]
-#        # Combines cosmological and EFT parameters into one vector for the FS theory function
-#        cosmo_eft_params = vcat(cosmo_params_LSS, eft_params)
-#        # Calculates FS-BAO joint theory vector given the parameters
-#        prediction = iΓ_FS_BAO_all[tracer] * vcat(wmat_used[tracer]*theory_FS(cosmo_eft_params, emus_FS[tracer], kin_used[tracer]), 
-#                                                theory_BAO(cosmo_params_LSS, emu_BAO, zeff_used[tracer], tracer))
-#        D_FS_BAO_all[tracer] ~ MvNormal(prediction, I)
-#    end
-#    # Adds Lya BAO as a stand alone (since uncorrelated with other tracers)
-#    prediction = iΓ_Lya * theory_BAO(cosmo_params_LSS, emu_BAO, 2.33, "Lya")
-##    D_Lya ~ MvNormal(prediction, I)
- #   # Constructs theory vector and associates data with model
- #   prediction = iΓ_CMB * theory_CMB(cosmo_params_CMB, emus_CMB)
- #   D_CMB ~ MvNormal(prediction, I)
- #   return nothing
- #   # Does not add BBN or ns10 priors since including CMB data
-#end
-
-#@everywhere @model function model_SN(D_SN, iΓ_SN, z_SN, fixed_value, param, variation)
-#    # Draws cosmological parameters
- #   cosmo_params = Vector{Any}(undef, 7) # 7 cosmological parameters: ln10As, ns, H0, ωb, ωc, w0, wa
- #   if variation == "LCDM"
-#        cosmo_params_list = ["ln10As", "ns", "H0", "ωb", "ωc"]
- #       cosmo_ranges = Dict("ln10As" => [2.0, 3.5], "ns" => [0.8, 1.1], "H0" => [50, 80], "ωb" => [0.02, 0.025], "ωc" => [0.09, 0.25])
- #       cosmo_params[6], cosmo_params[7] = -1, 0 # sets w0, wa = -1, 0 for LCDM specifically
- #   elseif variation == "w0waCDM"
- #       cosmo_params_list = ["ln10As", "ns", "H0", "ωb", "ωc", "w0", "wa"]
- #       cosmo_ranges = Dict("ln10As" => [2.0, 3.5], "ns" => [0.8, 1.1], "H0" => [50, 80], "ωb" => [0.02, 0.025], "ωc" => [0.09, 0.25],
-  #                          "w0" => [-2, 0.5], "wa" => [-3, 1.64])
-  #  end
-  #  for i in 1:length(cosmo_params_list)
-  #      if cosmo_params_list[i] == param
-   #         cosmo_params[i] = fixed_value
-   #     else
-   #         cosmo_params[i] ~ Uniform(cosmo_ranges[cosmo_params_list[i]][1], cosmo_ranges[cosmo_params_list[i]][2])
-   #     end
-   # end
-   # # Constructs the parameter vector given the samples drawn above
-   # cosmo_params = [cosmo_params[1], cosmo_params[2], cosmo_params[3], cosmo_params[4], 
-  #                  cosmo_params[5], cosmo_params[6], cosmo_params[7]]
-  #  Mb ~ Uniform(-5, 5)
-   # # Constructs theory vector and associates data vector with model
-   # prediction = iΓ_SN * theory_SN(cosmo_params, Mb, z_SN)
-   # D_SN ~ MvNormal(prediction, I)
-   # return nothing
-#end
-
-#@everywhere @model function model_FS_BAO_CMB_SN(D_FS_BAO_all, iΓ_FS_BAO_all, D_Lya, iΓ_Lya, D_CMB, iΓ_CMB, D_SN, iΓ_SN, z_SN, fixed_value, param, variation, emus_FS, emu_BAO, emus_CMB, tracer_vector, zeff_used, nd_used, fsat_used, sigv_used, kin_used, wmat_used)
-#    # Draws cosmological parameters
- #   cosmo_params = Vector{Any}(undef, 9) # 9 cosmological parameters: ln10As, ns, H0, ωb, ωc, τ, w0, wa, mν (reorders later)
- #   cosmo_params[9] = 0.06 # fixes neutrino mass
- #   if variation == "LCDM"
- #       cosmo_params_list = ["ln10As", "ns", "H0", "ωb", "ωc", "τ"]
-  #      cosmo_ranges = Dict("ln10As" => [2.5, 3.5], "ns" => [0.88, 1.05], "H0" => [50, 80], "ωb" => [0.02, 0.025], "ωc" => [0.09, 0.2], "τ" => [0.02, 0.12])
-  #      cosmo_params[7], cosmo_params[8] = -1, 0 # sets w0, wa = -1, 0 for LCDM specifically
-  #  elseif variation == "w0waCDM"
-  #      cosmo_params_list = ["ln10As", "ns", "H0", "ωb", "ωc", "τ", "w0", "wa"]
-  #      cosmo_ranges = Dict("ln10As" => [2.5, 3.5], "ns" => [0.88, 1.05], "H0" => [50, 80], "ωb" => [0.02, 0.025], "ωc" => [0.09, 0.2], "τ" => [0.02, 0.12],
-  #                          "w0" => [-2, 0.49], "wa" => [-3, 1.64])
-  #  end
-  #  for i in 1:length(cosmo_params_list)
-  #      if cosmo_params_list[i] == param
-  #          cosmo_params[i] = fixed_value
-  #      else
-  #          if cosmo_params_list[i] == "τ"
-  #              cosmo_params[i] ~ Normal(0.0506, 0.0086)
-  #          else
-  #              cosmo_params[i] ~ Uniform(cosmo_ranges[cosmo_params_list[i]][1], cosmo_ranges[cosmo_params_list[i]][2])
-  #          end
-  #      end
-  #  end
-  #  yₚ ~ Normal(1.0, 0.0025)
-  #  # Constructs the parameter vector given the samples drawn above (changes order to match the emulator)
-  #  cosmo_params_LSS = [cosmo_params[1], cosmo_params[2], cosmo_params[3], cosmo_params[4], cosmo_params[5], 
-  #                      cosmo_params[7], cosmo_params[8]]
-  #  cosmo_params_CMB = [cosmo_params[1], cosmo_params[2], cosmo_params[3], cosmo_params[4], cosmo_params[5],
-  #                      cosmo_params[6], cosmo_params[9], cosmo_params[7], cosmo_params[8]]
-  #  Mb ~ Uniform(-5, 5)
-  #  # Extracts f and sigma8 values for each of the tracers using BAO emulator
-  #  f_sigma8 = Effort.get_BAO(cosmo_params_LSS, emu_BAO)
-  #  f_all = Dict("BGS" => f_sigma8[2], "LRG1" => f_sigma8[3], "LRG2" => f_sigma8[4], "LRG3" => f_sigma8[5], "ELG2" => f_sigma8[7], "QSO" => f_sigma8[8])
-  #  sigma8_all = Dict("BGS" => f_sigma8[9], "LRG1" => f_sigma8[10], "LRG2" => f_sigma8[11], "LRG3" => f_sigma8[12], "ELG2" => f_sigma8[14], "QSO" => f_sigma8[15])
-  #  # Draws EFT nuisance parameters
-  #  eft_ranges = Dict("b1p" => [0, 6], "b2p" =>  [-15, 5], "bsp" => [-10, 15], "alpha0p" => [-100, 400], "alpha2p" => [-800, 200], "st0p" => [-80, 80], "st2p" => [-200, 200])
-  ##  b1p_vector = Vector{Any}(undef, length(tracer_vector))
-  #  b2p_vector = Vector{Any}(undef, length(tracer_vector))
-  #  b3p_vector = Vector{Any}(undef, length(tracer_vector))
-  #  bsp_vector = Vector{Any}(undef, length(tracer_vector))
-  #  alpha0p_vector = Vector{Any}(undef, length(tracer_vector))
-  #  alpha2p_vector = Vector{Any}(undef, length(tracer_vector))
-  #  alpha4p_vector = Vector{Any}(undef, length(tracer_vector))
-  #  st0p_vector = Vector{Any}(undef, length(tracer_vector))
-  #  st2p_vector = Vector{Any}(undef, length(tracer_vector))
-  #  st4p_vector = Vector{Any}(undef, length(tracer_vector))
-  #  # Iterates through each of the tracers
-  #  for i in 1:length(tracer_vector)
-  #      tracer = tracer_vector[i]
-  #      b1p_vector[i] ~ Uniform(eft_ranges["b1p"][1], eft_ranges["b1p"][2])
-  #      b2p_vector[i] ~ Uniform(eft_ranges["b2p"][1], eft_ranges["b2p"][2])
-  #      b3p_vector[i] = 0 
-  #      bsp_vector[i] ~ Uniform(eft_ranges["bsp"][1], eft_ranges["bsp"][2])
-  #      alpha0p_vector[i] ~ Uniform(eft_ranges["alpha0p"][1], eft_ranges["alpha0p"][2])
-  #      alpha2p_vector[i] ~ Uniform(eft_ranges["alpha2p"][1], eft_ranges["alpha2p"][2])
-  #      alpha4p_vector[i] = 0
-  #      st0p_vector[i] ~ Uniform(eft_ranges["st0p"][1], eft_ranges["st0p"][2])
-  #      st2p_vector[i] ~ Uniform(eft_ranges["st2p"][1], eft_ranges["st2p"][2])
-  #      st4p_vector[i] = 0
-  #      b1p, b2p, b3p, bsp, alpha0p, alpha2p, alpha4p, st0p, st2p, st4p = [b1p_vector[i], b2p_vector[i], b3p_vector[i], bsp_vector[i],
-  #                                                                          alpha0p_vector[i], alpha2p_vector[i], alpha4p_vector[i], st0p_vector[i], st2p_vector[i], st4p_vector[i]]
-  #      # Converts physical to Eulerian basis
-  #      f, sigma8 = f_all[tracer], sigma8_all[tracer]
-  #      b1l = b1p/sigma8-1; b2l = b2p/sigma8^2; b3l = b3p/sigma8^3; bsl = bsp/sigma8^2
-  #      b1e = b1l+1; b2e = 8/21*b1l+b2l; bse = bsl-2/7*b1l; b3e = 3*b3l+b1l
-  #      alpha0e = (1+b1l)^2*alpha0p; alpha2e = f*(1+b1l)*(alpha0p+alpha2p); alpha4e = f*(f*alpha2p+(1+b1l)*alpha4p); alpha6e = f^2*alpha4p
-  #      st0e = st0p/(nd_used[tracer]); st2e = st2p/(nd_used[tracer])*(fsat_used[tracer])*(sigv_used[tracer])^2; st4e = st4p/(nd_used[tracer])*(fsat_used[tracer])*(sigv_used[tracer])^4
-  #      eft_params = [b1e, b2e, b3e, bse, alpha0e, alpha2e, alpha4e, alpha6e, st0e, st2e, st4e]
-  #      # Combines cosmological and EFT parameters into one vector for the FS theory function
-  #      cosmo_eft_params = vcat(cosmo_params_LSS, eft_params)
-  #      # Calculates FS-BAO joint theory vector given the parameters
-  #      prediction = iΓ_FS_BAO_all[tracer] * vcat(wmat_used[tracer]*theory_FS(cosmo_eft_params, emus_FS[tracer], kin_used[tracer]), 
-  #                                              theory_BAO(cosmo_params_LSS, emu_BAO, zeff_used[tracer], tracer))
-  #      D_FS_BAO_all[tracer] ~ MvNormal(prediction, I)
-  #  end
-  #  # Adds Lya BAO as a stand alone (since uncorrelated with other tracers)
-  #  prediction = iΓ_Lya * theory_BAO(cosmo_params_LSS, emu_BAO, 2.33, "Lya")
-  #  D_Lya ~ MvNormal(prediction, I)
-  #  # Constructs CMB theory vector and associates data with model
-  #  prediction = iΓ_CMB * theory_CMB(cosmo_params_CMB, emus_CMB)
-  #  D_CMB ~ MvNormal(prediction, I)
-  #  # Constructs SN theory vector and associates data with model
-  #  prediction = iΓ_SN * theory_SN(cosmo_params_LSS, Mb, z_SN)
-  #  D_SN ~ MvNormal(prediction, I)
-  #  return nothing
-  #  # Does not add BBN or ns10 priors since including CMB data
-#end
-
+@everywhere @model function model_FS_BAO_CMB_SN(D_FS_BAO_all, D_Lya, D_CMB, iΓ_SN, D_SN, z_SN)
+    # Draws cosmological parameters
+    ln10As ~ Uniform(cosmo_ranges["ln10As"][1], cosmo_ranges["ln10As"][2])
+    ns ~ Uniform(cosmo_ranges["ns"][1], cosmo_ranges["ns"][2])             # might need to adjust if using MAP
+    H0 ~ Uniform(cosmo_ranges["H0"][1], cosmo_ranges["H0"][2])
+    ωb ~ Uniform(cosmo_ranges["ωb"][1], cosmo_ranges["ωb"][2])           # might need to adjust if using MAP
+    ωc ~ Uniform(cosmo_ranges["ωc"][1], cosmo_ranges["ωc"][2])
+    w0 ~ Uniform(cosmo_ranges["w0"][1], cosmo_ranges["w0"][2])
+    wa ~ Uniform(cosmo_ranges["wa"][1], cosmo_ranges["wa"][2])
+    # Parameters for CMB contribution
+    τ ~ Normal(0.0506, 0.0086)
+    mν = 0.06
+    yₚ ~ Normal(1.0, 0.0025)
+    # Parameters for SN contribution
+    Mb ~ Uniform(-5, 5)
+    # Constructs parameter vector given samples drawn
+    cosmo_params_FS_BAO = [ln10As, ns, H0, ωb, ωc, w0, wa]
+    cosmo_params_CMB = [ln10As, ns, H0, ωb, ωc, τ, mν, w0, wa]
+    # Extracts f and sigma8 values for each tracer using BAO emulator
+    fsigma8_info = Effort.get_BAO(cosmo_params_FS_BAO, BAO_emu)
+    f_all = Dict("BGS" => fsigma8_info[2], "LRG1" => fsigma8_info[3], "LRG2" => fsigma8_info[4], "LRG3" => fsigma8_info[5], 
+                "ELG2" => fsigma8_info[7], "QSO" => fsigma8_info[8])
+    sigma8_all = Dict("BGS" => fsigma8_info[9], "LRG1" => fsigma8_info[10], "LRG2" => fsigma8_info[11], "LRG3" => fsigma8_info[12], 
+                    "ELG2" => fsigma8_info[14], "QSO" => fsigma8_info[15])
+    # Draws EFT nuisance parameters
+    # Iterates through each tracer
+    for tracer in tracer_vector
+        if tracer == "BGS"
+            b1p_BGS ~ Uniform(eft_ranges["b1p_BGS"][1], eft_ranges["b1p_BGS"][2])
+            b2p_BGS ~ Uniform(eft_ranges["b2p_BGS"][1], eft_ranges["b2p_BGS"][2])
+            b3p_BGS = 0
+            bsp_BGS ~ Uniform(eft_ranges["bsp_BGS"][1], eft_ranges["bsp_BGS"][2])
+            alpha0p_BGS ~ Uniform(eft_ranges["alpha0p_BGS"][1], eft_ranges["alpha0p_BGS"][2])
+            alpha2p_BGS ~ Uniform(eft_ranges["alpha2p_BGS"][1], eft_ranges["alpha2p_BGS"][2])
+            alpha4p_BGS = 0
+            st0p_BGS ~ Uniform(eft_ranges["st0p_BGS"][1], eft_ranges["st0p_BGS"][2])
+            st2p_BGS ~ Uniform(eft_ranges["st2p_BGS"][1], eft_ranges["st2p_BGS"][2])
+            st4p_BGS = 0
+            eft_params_physical = [b1p_BGS, b2p_BGS, b3p_BGS, bsp_BGS, alpha0p_BGS, alpha2p_BGS, alpha4p_BGS, st0p_BGS, st2p_BGS, st4p_BGS]
+        elseif tracer == "LRG1"
+            b1p_LRG1 ~ Uniform(eft_ranges["b1p_LRG1"][1], eft_ranges["b1p_LRG1"][2])
+            b2p_LRG1 ~ Uniform(eft_ranges["b2p_LRG1"][1], eft_ranges["b2p_LRG1"][2])
+            b3p_LRG1 = 0
+            bsp_LRG1 ~ Uniform(eft_ranges["bsp_LRG1"][1], eft_ranges["bsp_LRG1"][2])
+            alpha0p_LRG1 ~ Uniform(eft_ranges["alpha0p_LRG1"][1], eft_ranges["alpha0p_LRG1"][2])
+            alpha2p_LRG1 ~ Uniform(eft_ranges["alpha2p_LRG1"][1], eft_ranges["alpha2p_LRG1"][2])
+            alpha4p_LRG1 = 0
+            st0p_LRG1 ~ Uniform(eft_ranges["st0p_LRG1"][1], eft_ranges["st0p_LRG1"][2])
+            st2p_LRG1 ~ Uniform(eft_ranges["st2p_LRG1"][1], eft_ranges["st2p_LRG1"][2])
+            st4p_LRG1 = 0
+            eft_params_physical = [b1p_LRG1, b2p_LRG1, b3p_LRG1, bsp_LRG1, alpha0p_LRG1, alpha2p_LRG1, alpha4p_LRG1, st0p_LRG1, st2p_LRG1, st4p_LRG1]
+        elseif tracer == "LRG2"
+            b1p_LRG2 ~ Uniform(eft_ranges["b1p_LRG2"][1], eft_ranges["b1p_LRG2"][2])
+            b2p_LRG2 ~ Uniform(eft_ranges["b2p_LRG2"][1], eft_ranges["b2p_LRG2"][2])
+            b3p_LRG2 = 0
+            bsp_LRG2 ~ Uniform(eft_ranges["bsp_LRG2"][1], eft_ranges["bsp_LRG2"][2])
+            alpha0p_LRG2 ~ Uniform(eft_ranges["alpha0p_LRG2"][1], eft_ranges["alpha0p_LRG2"][2])
+            alpha2p_LRG2 ~ Uniform(eft_ranges["alpha2p_LRG2"][1], eft_ranges["alpha2p_LRG2"][2])
+            alpha4p_LRG2 = 0
+            st0p_LRG2 ~ Uniform(eft_ranges["st0p_LRG2"][1], eft_ranges["st0p_LRG2"][2])
+            st2p_LRG2 ~ Uniform(eft_ranges["st2p_LRG2"][1], eft_ranges["st2p_LRG2"][2])
+            st4p_LRG2 = 0
+            eft_params_physical = [b1p_LRG2, b2p_LRG2, b3p_LRG2, bsp_LRG2, alpha0p_LRG2, alpha2p_LRG2, alpha4p_LRG2, st0p_LRG2, st2p_LRG2, st4p_LRG2]
+        elseif tracer == "LRG3"
+            b1p_LRG3 ~ Uniform(eft_ranges["b1p_LRG3"][1], eft_ranges["b1p_LRG3"][2])
+            b2p_LRG3 ~ Uniform(eft_ranges["b2p_LRG3"][1], eft_ranges["b2p_LRG3"][2])
+            b3p_LRG3 = 0
+            bsp_LRG3 ~ Uniform(eft_ranges["bsp_LRG3"][1], eft_ranges["bsp_LRG3"][2])
+            alpha0p_LRG3 ~ Uniform(eft_ranges["alpha0p_LRG3"][1], eft_ranges["alpha0p_LRG3"][2])
+            alpha2p_LRG3 ~ Uniform(eft_ranges["alpha2p_LRG3"][1], eft_ranges["alpha2p_LRG3"][2])
+            alpha4p_LRG3 = 0
+            st0p_LRG3 ~ Uniform(eft_ranges["st0p_LRG3"][1], eft_ranges["st0p_LRG3"][2])
+            st2p_LRG3 ~ Uniform(eft_ranges["st2p_LRG3"][1], eft_ranges["st2p_LRG3"][2])
+            st4p_LRG3 = 0
+            eft_params_physical = [b1p_LRG3, b2p_LRG3, b3p_LRG3, bsp_LRG3, alpha0p_LRG3, alpha2p_LRG3, alpha4p_LRG3, st0p_LRG3, st2p_LRG3, st4p_LRG3]
+        elseif tracer == "ELG2"
+            b1p_ELG2 ~ Uniform(eft_ranges["b1p_ELG2"][1], eft_ranges["b1p_ELG2"][2])
+            b2p_ELG2 ~ Uniform(eft_ranges["b2p_ELG2"][1], eft_ranges["b2p_ELG2"][2])
+            b3p_ELG2 = 0
+            bsp_ELG2 ~ Uniform(eft_ranges["bsp_ELG2"][1], eft_ranges["bsp_ELG2"][2])
+            alpha0p_ELG2 ~ Uniform(eft_ranges["alpha0p_ELG2"][1], eft_ranges["alpha0p_ELG2"][2])
+            alpha2p_ELG2 ~ Uniform(eft_ranges["alpha2p_ELG2"][1], eft_ranges["alpha2p_ELG2"][2])
+            alpha4p_ELG2 = 0
+            st0p_ELG2 ~ Uniform(eft_ranges["st0p_ELG2"][1], eft_ranges["st0p_ELG2"][2])
+            st2p_ELG2 ~ Uniform(eft_ranges["st2p_ELG2"][1], eft_ranges["st2p_ELG2"][2])
+            st4p_ELG2 = 0
+            eft_params_physical = [b1p_ELG2, b2p_ELG2, b3p_ELG2, bsp_ELG2, alpha0p_ELG2, alpha2p_ELG2, alpha4p_ELG2, st0p_ELG2, st2p_ELG2, st4p_ELG2]
+        elseif tracer == "QSO"
+            b1p_QSO ~ Uniform(eft_ranges["b1p_QSO"][1], eft_ranges["b1p_QSO"][2])
+            b2p_QSO ~ Uniform(eft_ranges["b2p_QSO"][1], eft_ranges["b2p_QSO"][2])
+            b3p_QSO = 0
+            bsp_QSO ~ Uniform(eft_ranges["bsp_QSO"][1], eft_ranges["bsp_QSO"][2])
+            alpha0p_QSO ~ Uniform(eft_ranges["alpha0p_QSO"][1], eft_ranges["alpha0p_QSO"][2])
+            alpha2p_QSO ~ Uniform(eft_ranges["alpha2p_QSO"][1], eft_ranges["alpha2p_QSO"][2])
+            alpha4p_QSO = 0
+            st0p_QSO ~ Uniform(eft_ranges["st0p_QSO"][1], eft_ranges["st0p_QSO"][2])
+            st2p_QSO ~ Uniform(eft_ranges["st2p_QSO"][1], eft_ranges["st2p_QSO"][2])
+            st4p_QSO = 0
+            eft_params_physical = [b1p_QSO, b2p_QSO, b3p_QSO, bsp_QSO, alpha0p_QSO, alpha2p_QSO, alpha4p_QSO, st0p_QSO, st2p_QSO, st4p_QSO]            
+        end
+        b1p, b2p, b3p, bsp, alpha0p, alpha2p, alpha4p, st0p, st2p, st4p = eft_params_physical
+        # Converts physical to Eulerian basis
+        f, sigma8 = f_all[tracer], sigma8_all[tracer]
+        b1l = b1p/sigma8-1; b2l = b2p/sigma8^2; b3l = b3p/sigma8^3; bsl = bsp/sigma8^2
+        b1e = b1l+1; b2e = 8/21*b1l+b2l; bse = bsl-2/7*b1l; b3e = 3*b3l+b1l
+        alpha0e = (1+b1l)^2*alpha0p; alpha2e = f*(1+b1l)*(alpha0p+alpha2p); alpha4e = f*(f*alpha2p+(1+b1l)*alpha4p); alpha6e = f^2*alpha4p
+        st0e = st0p/(nd_all[tracer]); st2e = st2p/(nd_all[tracer])*(fsat_all[tracer])*(sigv_all[tracer])^2; st4e = st4p/(nd_all[tracer])*(fsat_all[tracer])*(sigv_all[tracer])^4
+        eft_params = [b1e, b2e, b3e, bse, alpha0e, alpha2e, alpha4e, alpha6e, st0e, st2e, st4e]
+        # Combines cosmological and EFT parameters into one theory vector
+        cosmo_eft_params = vcat(cosmo_params_FS_BAO, eft_params)
+        # Calculates FS/BAO theory vector given parameters
+        prediction_FS_BAO = iΓ_FS_BAO_all[tracer]*vcat(wmat_all[tracer]*theory_FS(cosmo_eft_params, FS_emus[tracer], kin_all[tracer]),
+                                                    theory_BAO(cosmo_params_FS_BAO, BAO_emu, zeff_all[tracer], tracer))
+        D_FS_BAO_all[tracer] ~ MvNormal(prediction_FS_BAO, I)
+    end
+    # Adds Lya BAO as a stand alone (since uncorrelated with other tracers)
+    prediction_Lya = iΓ_Lya * theory_BAO(cosmo_params_FS_BAO, BAO_emu, 2.33, "Lya")
+    D_Lya ~ MvNormal(prediction_Lya, I)
+    # Adds CMB contribution
+    prediction_CMB = iΓ_CMB * theory_CMB(cosmo_params_CMB, CMB_emus) ./ (yₚ^2)
+    D_CMB ~ MvNormal(prediction_CMB, I)
+    # Adds SN contribution
+    prediction_SN = iΓ_SN * theory_SN(cosmo_params_FS_BAO, Mb, z_SN)
+    D_SN ~ MvNormal(prediction_SN, I)
+end
 
 @everywhere function run_worker(fixed_value)
     # Runs the worker for a given parameter value in the profile likelihood.
@@ -1134,7 +1015,14 @@ end
             #    end
             #    append!(init_values, guess)
             #end
-            fit_result = maximum_a_posteriori(fit_model, LBFGS(m=30, P=preconditioning_matrix))#; initial_params=init_values)############################; initial_params=init_values)#, P=preconditioning_matrix))#, P=preconditioning_matrix))#, P=Diagonal([1/0.01, 1/1, 1/0.0001, 1/0.01, 1/0.1, 1/1, 1/1, 1/10, 1/10, 1/1, 1/1, 1/0.1, 1/1, 1/1, 1/10, 1/10, 1/1, 1/1, 1/0.1, 1/1, 1/1, 1/10, 1/10, 1/1, 1/1, 1/0.1, 1/1, 1/1, 1/10, 1/10, 1/1, 1/1, 1/0.1, 1/1, 1/1, 1/10, 1/10, 1/1, 1/1, 1/0.1, 1/1, 1/1, 1/10, 1/10, 1/1, 1/1])))#, P=preconditioning_matrix)) # add initial values if needed!###########################################################
+            cosmo_param_guesses = [0.9649+rand(Normal(0, 0.042)), 74+rand(Normal(0, 2)), 0.02218+rand(Normal(0, 0.00055)), 0.12+rand(Uniform(-0.03, 0.03)), -0.6+rand(Normal(0, 0.5)), -1.5+rand(Normal(0,0.5))] # currently for w0waCDM
+            BGS_guesses = [1.1+rand(Normal(0, 0.2)), -1+rand(Normal(0, 2)), 2+rand(Normal(0, 2)), 50+rand(Normal(0, 20)), 0+rand(Normal(0, 50)), -5+rand(Normal(0, 2)), -5+rand(Normal(0, 2))]
+            LRG1_guesses = [1.25+rand(Normal(0, 0.2)), -1+rand(Normal(0, 2)), 1+rand(Normal(0, 2)), 25+rand(Normal(0, 20)), -50+rand(Normal(0, 50)), -5+rand(Normal(0, 2)), -5+rand(Normal(0, 2))]
+            LRG2_guesses = [1.2+rand(Normal(0, 0.2)), -1+rand(Normal(0, 2)), 1+rand(Normal(0, 2)), 10+rand(Normal(0, 20)), 0+rand(Normal(0, 50)), 0+rand(Normal(0, 2)), -2+rand(Normal(0, 2))]
+            LRG3_guesses = [1.2+rand(Normal(0, 0.2)), -0.5+rand(Normal(0, 2)), 0.5+rand(Normal(0, 2)), 20+rand(Normal(0, 20)), -50+rand(Normal(0, 50)), -1+rand(Normal(0, 2)), 1+rand(Normal(0, 2))]
+            ELG2_guesses = [0.65+rand(Normal(0, 0.2)), 0+rand(Normal(0, 2)), 0+rand(Normal(0, 2)), 25, -25+rand(Normal(0, 20)), -1+rand(Normal(0, 2)), -5+rand(Normal(0, 2))]
+            QSO_guesses = [0.95+rand(Normal(0, 0.2)), -0.5+rand(Normal(0, 2)), 0.5+rand(Normal(0, 2)), 25+rand(Normal(0, 20)), -25+rand(Normal(0, 50)), -0.1+rand(Normal(0, 0.2)), -1+rand(Normal(0, 2))]
+            fit_result = maximum_a_posteriori(fit_model, LBFGS(m=50, P=preconditioning_matrix); initial_params=vcat(cosmo_param_guesses, BGS_guesses, LRG1_guesses, LRG2_guesses, LRG3_guesses, ELG2_guesses, QSO_guesses))
             profile_values_array[i] = fit_result.lp
             bestfit_values_array[:, i] = fit_result.values.array
             #println("worker OKAY")
