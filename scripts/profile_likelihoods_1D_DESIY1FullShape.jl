@@ -40,19 +40,19 @@ function main()
         arg_type = Float64
         required = true
         "--param" 
-        help = "Specify the parameter" # i.e. ln10As, H0, w0, wa, etc.
+        help = "Specify the parameter" 
         arg_type = String
         required = true
         "--dataset" 
-        help = "Specify the desired dataset" # i.e. FS, FS+BAO, FS+BAO+CMB, FS+BAO+CMB+SN, etc.
+        help = "Specify the desired dataset" 
         arg_type = String
         required = true
         "--variation"
-        help = "Specify the desired variation" # i.e. LCDM, w0waCDM
+        help = "Specify the desired variation" 
         arg_type = String
         required = true
         "--tracer_list" 
-        help = "Specify the tracer(s)" # i.e. BGS, LRG1, LRG2, LRG3, ELG2, QSO, BGS,LRG1,LRG2,LRG3,ELG2,QSO, etc.
+        help = "Specify the tracer(s)"
         arg_type = String
         required = true
         "--lower"
@@ -93,7 +93,7 @@ function main()
     variation = parsed_args["variation"]
     tracer_list = parsed_args["tracer_list"]
     tracer_vector = Vector{String}(split(tracer_list, ","))
-    save_path = "/global/homes/j/jgmorawe/FrequentistExample1/FrequentistExample1/profile_likelihood_results/$(param)_$(dataset)_$(variation)_$(tracer_list)_testing_approximate"############################################
+    save_path = "/global/homes/j/jgmorawe/FrequentistExample1/FrequentistExample1/profile_likelihood_results/$(param)_$(dataset)_$(variation)_$(tracer_list)_preparing_for_final"############################################
     lower = parsed_args["lower"]
     upper = parsed_args["upper"]
     desi_data_dir = parsed_args["desi_data_dir"]
@@ -131,6 +131,7 @@ function main()
     cov_baopost_all = Dict(tracer => (cov_pk_baopost_all[tracer])[cov_size[tracer]-1:cov_size[tracer], cov_size[tracer]-1:cov_size[tracer]] for tracer in tracers); 
     cov_baopost_all["BGS"] = cov_pk_baopost_all["BGS"][cov_size["BGS"]:cov_size["BGS"], cov_size["BGS"]:cov_size["BGS"]]
     cov_baopost_all["QSO"] = cov_pk_baopost_all["QSO"][cov_size["QSO"]:cov_size["QSO"], cov_size["QSO"]:cov_size["QSO"]] # isolates the BAO only covariance (adjusts since different for BGS and QSO)
+    
     # Actual data vectors (reparameterized for efficiency)
     Γ_FS_all = Dict(tracer => sqrt(cov_pk_all[tracer]) for tracer in tracers)
     iΓ_FS_all = Dict(tracer => inv(Γ_FS_all[tracer]) for tracer in tracers)
@@ -141,16 +142,19 @@ function main()
     Γ_FS_BAO_all = Dict(tracer => sqrt(cov_pk_baopost_all[tracer]) for tracer in tracers)
     iΓ_FS_BAO_all = Dict(tracer => inv(Γ_FS_BAO_all[tracer]) for tracer in tracers)
     D_FS_BAO_all = Dict(tracer => iΓ_FS_BAO_all[tracer] * pk_baopost_all[tracer] for tracer in tracers)
+    
     # Adds Lya BAO as a stand alone (since uncorrelated with other tracers)
     Lya_data = [9.891736201237542048e-01, 1.013384755757678057e+00]
     Lya_cov = inv([3.294630008635918330e+03 1.295814779172360204e+03; 1.295814779172360204e+03 2.235282696116466013e+03])
     Γ_Lya = sqrt(Lya_cov)
     iΓ_Lya = inv(Γ_Lya)
     D_Lya = iΓ_Lya * Lya_data
+    
     # Reads in the Planck CMB data
     Γ_CMB = sqrt(PlanckLite.cov)
     iΓ_CMB = inv(Γ_CMB)
     D_CMB = iΓ_CMB * PlanckLite.data
+    
     # Reads in the supernovae data
     DESY5SN = DESY5SN_info()
     z_DESY5SN = DESY5SN.data.zHD
@@ -159,36 +163,6 @@ function main()
     Γ_DESY5SN = sqrt(cov_DESY5SN)
     iΓ_DESY5SN = inv(Γ_DESY5SN)
     D_DESY5SN = iΓ_DESY5SN * data_DESY5SN
-
-
-    
-    #if dataset == "FS"
-    #    Γ_LSS_all = Dict(tracer => sqrt(cov_pk_all[tracer]) for tracer in tracers) # using reparameterization to make more efficient
-    #    iΓ_LSS_all = Dict(tracer => inv(Γ_LSS_all[tracer]) for tracer in tracers)
-    #    D_LSS_all = Dict(tracer => iΓ_LSS_all[tracer]*pk_all[tracer] for tracer in tracers)
-    #elseif dataset == "BAO"
-    #    Γ_LSS_all = Dict(tracer => sqrt(cov_baopost_all[tracer]) for tracer in tracers)
-    #    iΓ_LSS_all = Dict(tracer => inv(Γ_LSS_all[tracer]) for tracer in tracers)
-    #    D_LSS_all = Dict(tracer => iΓ_LSS_all[tracer]*baopost_all[tracer] for tracer in tracers)
-    #elseif dataset in ["FS+BAO", "FS+BAO+CMB", "FS+BAO+CMB+SN"]
-    #    Γ_LSS_all = Dict(tracer => sqrt(cov_pk_baopost_all[tracer]) for tracer in tracers)
-    #    iΓ_LSS_all = Dict(tracer => inv(Γ_LSS_all[tracer]) for tracer in tracers)
-    #    D_LSS_all = Dict(tracer => iΓ_LSS_all[tracer]*pk_baopost_all[tracer] for tracer in tracers)
-    #end
-
-    # Reads in the Planck CMB data (also using reparameterization to make more efficient)
-    #Γ_CMB = sqrt(PlanckLite.cov)
-    #iΓ_CMB = inv(Γ_CMB)
-    #D_CMB = iΓ_CMB * PlanckLite.data
-
-    # Reads in the supernovae data (also using reparameterization to make more efficient)
-    #DESY5SN = DESY5SN_info()
-    #z_DESY5SN = DESY5SN.data.zHD
-    #cov_DESY5SN = DESY5SN.covariance
-    #data_DESY5SN = DESY5SN.obs_flatdata
-    #Γ_DESY5SN = sqrt(cov_DESY5SN)
-    #iΓ_DESY5SN = inv(Γ_DESY5SN)
-    #D_DESY5SN = iΓ_DESY5SN * data_DESY5SN
 
     #PantheonPlusSN = PantheonPlusSN_info()
     #z_PantheonPlusSN = PantheonPlusSN.data.zHD
@@ -230,23 +204,32 @@ function main()
                     "LRG3" => 150*(10)^(1/3)*(1+0.8)^(1/2)/70, 
                     "ELG2" => 150*2.1^(1/2)/70, 
                     "QSO" => 150*(10)^(0.7/3)*(2.4)^(1/2)/70)
-
-    cosmo_ranges = Dict("ln10As" => [2.0, 3.5], "ns" => [0.8, 1.1], "H0" => [50, 80], "ωb" => [0.02, 0.025], 
-                        "ωc" => [0.09, 0.25], "w0" => [-2, 0.5], "wa" => [-3, 1.64]) # emulator boundaries (range which minimizer is allowed to move)
+    # need to fix issue with CMB cases by changing the boundaries when necessary!!!!
+    cosmo_ranges = Dict("ln10As" => [2.0, 3.5], "ns" => [0.8, 1.1], "H0" => [50, 80], "ωb" => [0.02, 0.025], "ωc" => [0.09, 0.25], "w0" => [-2, 0.5], "wa" => [-3, 1.64]) # emulator boundaries (range which minimizer is allowed to move)
     cosmo_priors = Dict("ns" => [0.9649, 0.042], "ωb" => [0.02218, 0.00055])
-    eft_ranges = Dict("b1p_BGS" => [0, 6], "b1p_LRG1" => [0, 6], "b1p_LRG2" => [0, 6], "b1p_LRG3" => [0, 6], "b1p_ELG2" => [0, 6], "b1p_QSO" => [0, 6],
-                      "b2p_BGS" => [-15, 5], "b2p_LRG1" => [-15, 5], "b2p_LRG2" => [-15, 5], "b2p_LRG3" => [-15, 5], "b2p_ELG2" => [-15, 5], "b2p_QSO" => [-15, 5],
-                      "bsp_BGS" => [-10, 15], "bsp_LRG1" => [-10, 15], "bsp_LRG2" => [-10, 15], "bsp_LRG3" => [-10, 15], "bsp_ELG2" => [-10, 15], "bsp_QSO" => [-10, 15],
+    eft_ranges = Dict("b1p_BGS" => [0, 6],          "b1p_LRG1" => [0, 6],          "b1p_LRG2" => [0, 6],          "b1p_LRG3" => [0, 6],          "b1p_ELG2" => [0, 6],          "b1p_QSO" => [0, 6],
+                      "b2p_BGS" => [-15, 5],        "b2p_LRG1" => [-15, 5],        "b2p_LRG2" => [-15, 5],        "b2p_LRG3" => [-15, 5],        "b2p_ELG2" => [-15, 5],        "b2p_QSO" => [-15, 5],
+                      "bsp_BGS" => [-10, 15],       "bsp_LRG1" => [-10, 15],       "bsp_LRG2" => [-10, 15],       "bsp_LRG3" => [-10, 15],       "bsp_ELG2" => [-10, 15],       "bsp_QSO" => [-10, 15],
                       "alpha0p_BGS" => [-100, 400], "alpha0p_LRG1" => [-100, 400], "alpha0p_LRG2" => [-100, 400], "alpha0p_LRG3" => [-100, 400], "alpha0p_ELG2" => [-100, 400], "alpha0p_QSO" => [-100, 400],
                       "alpha2p_BGS" => [-800, 200], "alpha2p_LRG1" => [-800, 200], "alpha2p_LRG2" => [-800, 200], "alpha2p_LRG3" => [-800, 200], "alpha2p_ELG2" => [-800, 200], "alpha2p_QSO" => [-800, 200],
-                      "st0p_BGS" => [-80, 80], "st0p_LRG1" => [-80, 80], "st0p_LRG2" => [-80, 80], "st0p_LRG3" => [-80, 80], "st0p_ELG2" => [-80, 80], "st0p_QSO" => [-80, 80],
-                      "st2p_BGS" => [-200, 200], "st2p_LRG1" => [-200, 200], "st2p_LRG2" => [-200, 200], "st2p_LRG3" => [-200, 200], "st2p_ELG2" => [-200, 200], "st2p_QSO" => [-200, 200])
-    init_values_ranges = Dict("ln10As" => [2.9, 3.2], "ns" => [0.9649, 0.042], "H0" => [69, 72], "ωb" => [0.02218, 0.00055], 
-                              "ωc" => [0.115, 0.14], "w0" => [-1.5, 0], "wa" => [-2, 1],
-                              "b1p" => [0, 2], "b2p" =>  [-5, 5], "bsp" => [-5, 10], "alpha0p" => [-50, 100], "alpha2p" => [-150, 150],
-                              "st0p" => [-50, 50], "st2p" => [-50, 50]) # range of initial random guesses (narrower than emulator range to have fewer bad runs)
-    steps = Dict("ln10As" => 0.2, "ns" => 0.05, "H0" => 2, "ωb" => 0.001, "ωc" => 0.01, "w0" => 0.5, "wa" => 1,
-                 "b1p" => 0.1, "b2p" => 1, "bsp" => 1, "alpha0p" => 20, "alpha2p" => 50, "st0p" => 5, "st2p" => 5) # preconditioning step sizes
+                      "st0p_BGS" => [-80, 80],      "st0p_LRG1" => [-80, 80],      "st0p_LRG2" => [-80, 80],      "st0p_LRG3" => [-80, 80],      "st0p_ELG2" => [-80, 80],      "st0p_QSO" => [-80, 80],
+                      "st2p_BGS" => [-200, 200],    "st2p_LRG1" => [-200, 200],    "st2p_LRG2" => [-200, 200],    "st2p_LRG3" => [-200, 200],    "st2p_ELG2" => [-200, 200],    "st2p_QSO" => [-200, 200]) # exploration range boundaries for each of the EFT parameters
+    init_values_ranges = Dict("ln10As" => [3, 0.1], "ns" => [0.9649, 0.042], "H0" => [70, 2], "ωb" => [0.02218, 0.00055], "ωc" => [0.13, 0.01], "w0" => [-0.5, 0.5], "wa" => [-1, 0.5], "τ" => [0.0506, 0.0086], "yₚ" => [1.0, 0.0025], "Mb" => [0, 1.5],
+                              "b1p_BGS" => [1.1, 0.2],      "b1p_LRG1" => [1.1, 0.2],      "b1p_LRG2" => [1.1, 0.2],      "b1p_LRG3" => [1.1, 0.2],      "b1p_ELG2" => [1.1, 0.2],      "b1p_QSO" => [1.1, 0.2],
+                              "b2p_BGS" =>  [-1, 2],        "b2p_LRG1" =>  [-1, 2],        "b2p_LRG2" =>  [-1, 2],        "b2p_LRG3" =>  [-1, 2],        "b2p_ELG2" =>  [-1, 2],        "b2p_QSO" =>  [-1, 2], 
+                              "bsp_BGS" => [0, 5],          "bsp_LRG1" => [0, 5],          "bsp_LRG2" => [0, 5],          "bsp_LRG3" => [0, 5],          "bsp_ELG2" => [0, 5],          "bsp_QSO" => [0, 5], 
+                              "alpha0p_BGS" => [20, 20],  "alpha0p_LRG1" => [20, 20],  "alpha0p_LRG2" => [20, 20],  "alpha0p_LRG3" => [20, 20],  "alpha0p_ELG2" => [20, 20],  "alpha0p_QSO" => [20, 20], 
+                              "alpha2p_BGS" => [-20, 20], "alpha2p_LRG1" => [-20, 20], "alpha2p_LRG2" => [-20, 20], "alpha2p_LRG3" => [-20, 20], "alpha2p_ELG2" => [-20, 20], "alpha2p_QSO" => [-20, 20], 
+                              "st0p_BGS" => [-1, 2],      "st0p_LRG1" => [-1, 2],      "st0p_LRG2" => [-1, 2],      "st0p_LRG3" => [-1, 2],      "st0p_ELG2" => [-1, 2],      "st0p_QSO" => [-1, 2], 
+                              "st2p_BGS" => [0, 5],      "st2p_LRG1" => [0, 5],      "st2p_LRG2" => [0, 5],      "st2p_LRG3" => [0, 5],      "st2p_ELG2" => [0, 5],      "st2p_QSO" => [0, 5]) # distributions (normal) for initial guesses (narrower than the total ranges to ensure better convergence)
+    preconditioning_steps = Dict("ln10As" => 0.2, "ns" => 0.05, "H0" => 2, "ωb" => 0.001, "ωc" => 0.01, "w0" => 0.5, "wa" => 1, "τ" => 0.0086, "yₚ" => 0.0025, "Mb" => 1.5,
+                                 "b1p_BGS" => 0.1,    "b1p_LRG1" => 0.1,    "b1p_LRG2" => 0.1,    "b1p_LRG3" => 0.1,    "b1p_ELG2" => 0.1,    "b1p_QSO" => 0.1,
+                                 "b2p_BGS" => 1,      "b2p_LRG1" => 1,      "b2p_LRG2" => 1,      "b2p_LRG3" => 1,      "b2p_ELG2" => 1,      "b2p_QSO" => 1, 
+                                 "bsp_BGS" => 1,      "bsp_LRG1" => 1,      "bsp_LRG2" => 1,      "bsp_LRG3" => 1,      "bsp_ELG2" => 1,      "bsp_QSO" => 1, 
+                                 "alpha0p_BGS" => 20, "alpha0p_LRG1" => 20, "alpha0p_LRG2" => 20, "alpha0p_LRG3" => 20, "alpha0p_ELG2" => 20, "alpha0p_QSO" => 20, 
+                                 "alpha2p_BGS" => 50, "alpha2p_LRG1" => 50, "alpha2p_LRG2" => 50, "alpha2p_LRG3" => 50, "alpha2p_ELG2" => 50, "alpha2p_QSO" => 50, 
+                                 "st0p_BGS" => 5,     "st0p_LRG1" => 5,     "st0p_LRG2" => 5,     "st0p_LRG3" => 5,     "st0p_ELG2" => 5,     "st0p_QSO" => 5, 
+                                 "st2p_BGS" => 5,     "st2p_LRG1" => 5,     "st2p_LRG2" => 5,     "st2p_LRG3" => 5,     "st2p_ELG2" => 5,     "st2p_QSO" => 5) # preconditioning steps
 
     # Distributes the variables among the processes 
     @everywhere n_runs = $n_runs
@@ -284,9 +267,9 @@ function main()
 
     @everywhere cosmo_ranges = $cosmo_ranges
     @everywhere cosmo_priors = $cosmo_priors
-    @everywhere init_values_ranges = $init_values_ranges
     @everywhere eft_ranges = $eft_ranges
-    @everywhere steps = $steps
+    @everywhere init_values_ranges = $init_values_ranges
+    @everywhere preconditioning_steps = $preconditioning_steps
 
     # Specifies the range of parameter values and initiates arrays to store
     param_values = range(lower, stop=upper, length=n_bins)
@@ -402,7 +385,13 @@ end
     w0 ~ Uniform(cosmo_ranges["w0"][1], cosmo_ranges["w0"][2])
     wa ~ Uniform(cosmo_ranges["wa"][1], cosmo_ranges["wa"][2])
     # Constructs parameter vector given samples drawn
-    cosmo_params = [ln10As, ns, H0, ωb, ωc, w0, wa]
+    if param == "sigma8"
+        cosmo_params = [ln10As_from_sigma8(ln10As, ns, H0, ωb, ωc, w0, wa), ns, H0, ωb, ωc, w0, wa] # ln10As (the input) is actually sigma8 in this case! converts to ln10As from sigma8 and other cosmo parameters
+    elseif param == "Ωm"
+        cosmo_params = [ln10As, ns, H0, ωb, ωc*(H0/100)^2-ωb-0.00064419153, w0, wa] # ωc (the input) is actually omega matter in this case! converts to ωc from omega matter and other parameters
+    else
+        cosmo_params = [ln10As, ns, H0, ωb, ωc, w0, wa]
+    end
     # Extracts f and sigma8 values for each tracer using BAO emulator
     fsigma8_info = Effort.get_BAO(cosmo_params, BAO_emu)
     f_all = Dict("BGS" => fsigma8_info[2], "LRG1" => fsigma8_info[3], "LRG2" => fsigma8_info[4], "LRG3" => fsigma8_info[5], 
@@ -511,7 +500,11 @@ end
     w0 ~ Uniform(cosmo_ranges["w0"][1], cosmo_ranges["w0"][2])
     wa ~ Uniform(cosmo_ranges["wa"][1], cosmo_ranges["wa"][2])
     # Constructs parameter vector given samples drawn
-    cosmo_params = [ln10As, ns, H0, ωb, ωc, w0, wa]
+    if param == "Ωm"
+        cosmo_params = [ln10As, ns, H0, ωb, ωc*(H0/100)^2-ωb-0.00064419153, w0, wa]
+    else
+        cosmo_params = [ln10As, ns, H0, ωb, ωc, w0, wa]
+    end
     # Iterates through each tracer
     for tracer in tracer_vector
         prediction_BAO = iΓ_BAO_all[tracer]*theory_BAO(cosmo_params, BAO_emu, zeff_all[tracer], tracer)
@@ -532,7 +525,13 @@ end
     w0 ~ Uniform(cosmo_ranges["w0"][1], cosmo_ranges["w0"][2])
     wa ~ Uniform(cosmo_ranges["wa"][1], cosmo_ranges["wa"][2])
     # Constructs parameter vector given samples drawn
-    cosmo_params = [ln10As, ns, H0, ωb, ωc, w0, wa]
+    if param == "sigma8"
+        cosmo_params = [ln10As_from_sigma8(ln10As, ns, H0, ωb, ωc, w0, wa), ns, H0, ωb, ωc, w0, wa] # ln10As (the input) is actually sigma8 in this case! converts to ln10As from sigma8 and other cosmo parameters
+    elseif param == "Ωm"
+        cosmo_params = [ln10As, ns, H0, ωb, ωc*(H0/100)^2-ωb-0.00064419153, w0, wa] # ωc (the input) is actually omega matter in this case! converts to ωc from omega matter and other parameters
+    else
+        cosmo_params = [ln10As, ns, H0, ωb, ωc, w0, wa]
+    end
     # Extracts f and sigma8 values for each tracer using BAO emulator
     fsigma8_info = Effort.get_BAO(cosmo_params, BAO_emu)
     f_all = Dict("BGS" => fsigma8_info[2], "LRG1" => fsigma8_info[3], "LRG2" => fsigma8_info[4], "LRG3" => fsigma8_info[5], 
@@ -649,8 +648,16 @@ end
     mν = 0.06
     yₚ ~ Normal(1.0, 0.0025)
     # Constructs parameter vector given samples drawn
-    cosmo_params_FS_BAO = [ln10As, ns, H0, ωb, ωc, w0, wa]
-    cosmo_params_CMB = [ln10As, ns, H0, ωb, ωc, τ, mν, w0, wa]
+    if param == "sigma8"
+        cosmo_params_FS_BAO = [ln10As_from_sigma8(ln10As, ns, H0, ωb, ωc, w0, wa), ns, H0, ωb, ωc, w0, wa]
+        cosmo_params_CMB = [ln10As_from_sigma8(ln10As, ns, H0, ωb, ωc, w0, wa), ns, H0, ωb, ωc, τ, mν, w0, wa]
+    elseif param == "Ωm"
+        cosmo_params_FS_BAO = [ln10As, ns, H0, ωb, ωc*(H0/100)^2-ωb-0.00064419153, w0, wa]
+        cosmo_params_CMB = [ln10As, ns, H0, ωb, ωc*(H0/100)^2-ωb-0.00064419153, τ, mν, w0, wa]
+    else
+        cosmo_params_FS_BAO = [ln10As, ns, H0, ωb, ωc, w0, wa]
+        cosmo_params_CMB = [ln10As, ns, H0, ωb, ωc, τ, mν, w0, wa]
+    end
     # Extracts f and sigma8 values for each tracer using BAO emulator
     fsigma8_info = Effort.get_BAO(cosmo_params_FS_BAO, BAO_emu)
     f_all = Dict("BGS" => fsigma8_info[2], "LRG1" => fsigma8_info[3], "LRG2" => fsigma8_info[4], "LRG3" => fsigma8_info[5], 
@@ -772,8 +779,16 @@ end
     # Parameters for SN contribution
     Mb ~ Uniform(-5, 5)
     # Constructs parameter vector given samples drawn
-    cosmo_params_FS_BAO = [ln10As, ns, H0, ωb, ωc, w0, wa]
-    cosmo_params_CMB = [ln10As, ns, H0, ωb, ωc, τ, mν, w0, wa]
+    if param == "sigma8"
+        cosmo_params_FS_BAO = [ln10As_from_sigma8(ln10As, ns, H0, ωb, ωc, w0, wa), ns, H0, ωb, ωc, w0, wa]
+        cosmo_params_CMB = [ln10As_from_sigma8(ln10As, ns, H0, ωb, ωc, w0, wa), ns, H0, ωb, ωc, τ, mν, w0, wa]
+    elseif param == "Ωm"
+        cosmo_params_FS_BAO = [ln10As, ns, H0, ωb, ωc*(H0/100)^2-ωb-0.00064419153, w0, wa]
+        cosmo_params_CMB = [ln10As, ns, H0, ωb, ωc*(H0/100)^2-ωb-0.00064419153, τ, mν, w0, wa]
+    else
+        cosmo_params_FS_BAO = [ln10As, ns, H0, ωb, ωc, w0, wa]
+        cosmo_params_CMB = [ln10As, ns, H0, ωb, ωc, τ, mν, w0, wa]
+    end
     # Extracts f and sigma8 values for each tracer using BAO emulator
     fsigma8_info = Effort.get_BAO(cosmo_params_FS_BAO, BAO_emu)
     f_all = Dict("BGS" => fsigma8_info[2], "LRG1" => fsigma8_info[3], "LRG2" => fsigma8_info[4], "LRG3" => fsigma8_info[5], 
@@ -885,118 +900,82 @@ end
 @everywhere function run_worker(fixed_value)
     # Runs the worker for a given parameter value in the profile likelihood.
     # (Performs LBFGS minimization of chi-squared).
+
+    # Sets the given model to run for and determines the necessary (cosmological) fit labels for free parameters
     if dataset == "FS"
         if variation == "LCDM"
-            if param == "ln10As"
-                fit_model = model_FS(D_FS_all) | (ln10As=fixed_value, w0=-1, wa=0)
-                preconditioning_entries = [1/steps["ns"], 1/steps["H0"], 1/steps["ωb"], 1/steps["ωc"]]#preconditioning_matrix = Diagonal([1/0.01, 1/2, 1/0.0001, 1/0.01, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1])
-            #    init_param_labels = ["ns", "H0", "ωb", "ωc"]
+            if param == "sigma8"
+                fit_model = model_FS(D_FS_all) | (ln10As=fixed_value, w0=-1, wa=0); fit_labels=["ns", "H0", "ωb", "ωc"]
             elseif param == "H0"
-                fit_model = model_FS(D_FS_all) | (H0=fixed_value, w0=-1, wa=0)
-                preconditioning_entries = [1/steps["ln10As"], 1/steps["ns"], 1/steps["ωb"], 1/steps["ωc"]]#preconditioning_matrix = Diagonal([1/0.3, 1/0.01, 1/0.0001, 1/0.01, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1])
-            #    init_param_labels = ["ln10As", "ns", "ωb", "ωc"]
-            elseif param == "ωc"
-                fit_model = model_FS(D_FS_all) | (ωc=fixed_value, w0=-1, wa=0)
-                preconditioning_entries = [1/steps["ln10As"], 1/steps["ns"], 1/steps["H0"], 1/steps["ωb"]]#preconditioning_matrix = Diagonal([1/0.3, 1/0.01, 1/2, 1/0.0001, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1])
-            #    init_param_labels = ["ln10As", "ns", "H0", "ωb"]
+                fit_model = model_FS(D_FS_all) | (H0=fixed_value, w0=-1, wa=0); fit_labels=["ln10As", "ns", "ωb", "ωc"]
+            elseif param == "Ωm"
+                fit_model = model_FS(D_FS_all) | (ωc=fixed_value, w0=-1, wa=0); fit_labels = ["ln10As", "ns", "H0", "ωb"]
             end
         elseif variation == "w0waCDM"
-            if param == "ln10As"
-                fit_model = model_FS(D_FS_all) | (ln10As=fixed_value,)
-                preconditioning_entries = [1/steps["ns"], 1/steps["H0"], 1/steps["ωb"], 1/steps["ωc"], 1/steps["w0"], 1/steps["wa"]]# preconditioning_matrix = Diagonal([1/0.01, 1/2, 1/0.0001, 1/0.01, 1/0.5, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1])
-            #    init_param_labels = ["ns", "H0", "ωb", "ωc", "w0", "wa"]
+            if param == "sigma8"
+                fit_model = model_FS(D_FS_all) | (ln10As=fixed_value,); fit_labels=["ns", "H0", "ωb", "ωc", "w0", "wa"]
             elseif param == "H0"
-                fit_model = model_FS(D_FS_all) | (H0=fixed_value,)
-                preconditioning_entries = [1/steps["ln10As"], 1/steps["ns"], 1/steps["ωb"], 1/steps["ωc"], 1/steps["w0"], 1/steps["wa"]]# preconditioning_matrix = Diagonal([1/0.3, 1/0.01, 1/0.0001, 1/0.01, 1/0.5, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1])
-            #    init_param_labels = ["ln10As", "ns", "ωb", "ωc", "w0", "wa"]
-            elseif param == "ωc"
-                fit_model = model_FS(D_FS_all) | (ωc=fixed_value,)
-                preconditioning_entries = [1/steps["ln10As"], 1/steps["ns"], 1/steps["H0"], 1/steps["ωb"], 1/steps["w0"], 1/steps["wa"]]# preconditioning_matrix = Diagonal([1/0.3, 1/0.01, 1/2, 1/0.0001, 1/0.5, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1])
-            #    init_param_labels = ["ln10As", "ns", "H0", "ωb", "w0", "wa"]
+                fit_model = model_FS(D_FS_all) | (H0=fixed_value,); fit_labels=["ln10As", "ns", "ωb", "ωc", "w0", "wa"]
+            elseif param == "Ωm"
+                fit_model = model_FS(D_FS_all) | (ωc=fixed_value,); fit_labels = ["ln10As", "ns", "H0", "ωb", "w0", "wa"]
             elseif param == "w0"
-                fit_model = model_FS(D_FS_all) | (w0=fixed_value,)
-                preconditioning_entries = [1/steps["ln10As"], 1/steps["ns"], 1/steps["H0"], 1/steps["ωb"], 1/steps["ωc"], 1/steps["wa"]]#preconditioning_matrix = Diagonal([1/0.3, 1/0.01, 1/2, 1/0.0001, 1/0.01, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1])
-            #    init_param_labels = ["ln10As", "ns", "H0", "ωb", "ωc", "wa"]
+                fit_model = model_FS(D_FS_all) | (w0=fixed_value,); fit_labels = ["ln10As", "ns", "H0", "ωb", "ωc", "wa"]
             elseif param == "wa"
-                fit_model = model_FS(D_FS_all) | (wa=fixed_value,)
-                preconditioning_entries = [1/steps["ln10As"], 1/steps["ns"], 1/steps["H0"], 1/steps["ωb"], 1/steps["ωc"], 1/steps["w0"]]#preconditioning_matrix = Diagonal([1/0.3, 1/0.01, 1/2, 1/0.0001, 1/0.01, 1/0.5, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1])
-            #    init_param_labels = ["ln10As", "ns", "H0", "ωb", "ωc", "w0"]
+                fit_model = model_FS(D_FS_all) | (wa=fixed_value,); fit_labels = ["ln10As", "ns", "H0", "ωb", "ωc", "w0"]
             end
         end
     elseif dataset == "FS+BAO"
         if variation == "LCDM"
-            if param == "ln10As"
-                fit_model = model_FS_BAO(D_FS_BAO_all, D_Lya) | (ln10As=fixed_value, w0=-1, wa=0)
-                preconditioning_entries = [1/steps["ns"], 1/steps["H0"], 1/steps["ωb"], 1/steps["ωc"]]#preconditioning_matrix = Diagonal([1/0.01, 1/2, 1/0.0001, 1/0.01, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1])
-            #    init_param_labels = ["ns", "H0", "ωb", "ωc"]
+            if param == "sigma8"
+                fit_model = model_FS_BAO(D_FS_BAO_all, D_Lya) | (ln10As=fixed_value, w0=-1, wa=0); fit_labels=["ns", "H0", "ωb", "ωc"]
             elseif param == "H0"
-                fit_model = model_FS_BAO(D_FS_BAO_all, D_Lya) | (H0=fixed_value, w0=-1, wa=0)
-                preconditioning_entries = [1/steps["ln10As"], 1/steps["ns"], 1/steps["ωb"], 1/steps["ωc"]]#preconditioning_matrix = Diagonal([1/0.3, 1/0.01, 1/0.0001, 1/0.01, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1])
-            #    init_param_labels = ["ln10As", "ns", "ωb", "ωc"]
-            elseif param == "ωc"
-                fit_model = model_FS_BAO(D_FS_BAO_all, D_Lya) | (ωc=fixed_value, w0=-1, wa=0)
-                preconditioning_entries = [1/steps["ln10As"], 1/steps["ns"], 1/steps["H0"], 1/steps["ωb"]]#preconditioning_matrix = Diagonal([1/0.3, 1/0.01, 1/2, 1/0.0001, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1])
-            #    init_param_labels = ["ln10As", "ns", "H0", "ωb"]
+                fit_model = model_FS_BAO(D_FS_BAO_all, D_Lya) | (H0=fixed_value, w0=-1, wa=0); fit_labels=["ln10As", "ns", "ωb", "ωc"]
+            elseif param == "Ωm"
+                fit_model = model_FS_BAO(D_FS_BAO_all, D_Lya) | (ωc=fixed_value, w0=-1, wa=0); fit_labels = ["ln10As", "ns", "H0", "ωb"]
             end
         elseif variation == "w0waCDM"
-            if param == "ln10As"
-                fit_model = model_FS_BAO(D_FS_BAO_all, D_Lya) | (ln10As=fixed_value,)
-                preconditioning_entries = [1/steps["ns"], 1/steps["H0"], 1/steps["ωb"], 1/steps["ωc"], 1/steps["w0"], 1/steps["wa"]]# preconditioning_matrix = Diagonal([1/0.01, 1/2, 1/0.0001, 1/0.01, 1/0.5, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1])
-            #    init_param_labels = ["ns", "H0", "ωb", "ωc", "w0", "wa"]
+            if param == "sigma8"
+                fit_model = model_FS_BAO(D_FS_BAO_all, D_Lya) | (ln10As=fixed_value,); fit_labels=["ns", "H0", "ωb", "ωc", "w0", "wa"]
             elseif param == "H0"
-                fit_model = model_FS_BAO(D_FS_BAO_all, D_Lya) | (H0=fixed_value,)
-                preconditioning_entries = [1/steps["ln10As"], 1/steps["ns"], 1/steps["ωb"], 1/steps["ωc"], 1/steps["w0"], 1/steps["wa"]]#preconditioning_matrix = Diagonal([1/0.3, 1/0.01, 1/0.0001, 1/0.01, 1/0.5, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1])
-            #    init_param_labels = ["ln10As", "ns", "ωb", "ωc", "w0", "wa"]
-            elseif param == "ωc"
-                fit_model = model_FS_BAO(D_FS_BAO_all, D_Lya) | (ωc=fixed_value,)
-                preconditioning_entries = [1/steps["ln10As"], 1/steps["ns"], 1/steps["H0"], 1/steps["ωb"], 1/steps["w0"], 1/steps["wa"]]# preconditioning_matrix = Diagonal([1/0.3, 1/0.01, 1/2, 1/0.0001, 1/0.5, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1])
-            #    init_param_labels = ["ln10As", "ns", "H0", "ωb", "w0", "wa"]
+                fit_model = model_FS_BAO(D_FS_BAO_all, D_Lya) | (H0=fixed_value,); fit_labels=["ln10As", "ns", "ωb", "ωc", "w0", "wa"]
+            elseif param == "Ωm"
+                fit_model = model_FS_BAO(D_FS_BAO_all, D_Lya) | (ωc=fixed_value,); fit_labels = ["ln10As", "ns", "H0", "ωb", "w0", "wa"]
             elseif param == "w0"
-                fit_model = model_FS_BAO(D_FS_BAO_all, D_Lya) | (w0=fixed_value,)
-                preconditioning_entries = [1/steps["ln10As"], 1/steps["ns"], 1/steps["H0"], 1/steps["ωb"], 1/steps["ωc"], 1/steps["wa"]]# preconditioning_matrix = Diagonal([1/0.3, 1/0.01, 1/2, 1/0.0001, 1/0.01, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1])
-            #    init_param_labels = ["ln10As", "ns", "H0", "ωb", "ωc", "wa"]
+                fit_model = model_FS_BAO(D_FS_BAO_all, D_Lya) | (w0=fixed_value,); fit_labels = ["ln10As", "ns", "H0", "ωb", "ωc", "wa"]
             elseif param == "wa"
-                fit_model = model_FS_BAO(D_FS_BAO_all, D_Lya) | (wa=fixed_value,)
-                preconditioning_entries = [1/steps["ln10As"], 1/steps["ns"], 1/steps["H0"], 1/steps["ωb"], 1/steps["ωc"], 1/steps["w0"]]# preconditioning_matrix = Diagonal([1/0.3, 1/0.01, 1/2, 1/0.0001, 1/0.01, 1/0.5, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1, 1/0.3, 1/1, 1/1, 1/10, 1/20, 1/1, 1/1])
-            #    init_param_labels = ["ln10As", "ns", "H0", "ωb", "ωc", "w0"]
+                fit_model = model_FS_BAO(D_FS_BAO_all, D_Lya) | (wa=fixed_value,); fit_labels = ["ln10As", "ns", "H0", "ωb", "ωc", "w0"]
             end
         end
-    elseif dataset == "BAO"
+    elseif dataset == "FS+BAO+CMB"
         if variation == "LCDM"
-            if param == "H0"
-                fit_model = model_BAO(D_BAO_all) | (ln10As=3.044, ns=0.9649, H0=fixed_value, w0=-1, wa=0)
-                preconditioning_entries = [1/steps["ωb"], 1/steps["ωc"]]
-            #    init_param_labels = ["ωb", "ωc"]
-            elseif param == "ωc"
-                fit_model = model_BAO(D_BAO_all) | (ln10As=3.044, ns=0.9649, ωc=fixed_value, w0=-1, wa=0)
-                preconditioning_entries = [1/steps["H0"], 1/steps["ωb"]]
-           #     init_param_labels = ["H0", "ωb"]
+            if param == "sigma8"
+                fit_model = model_FS_BAO_CMB(D_FS_BAO_all, D_Lya, D_CMB) | (ln10As=fixed_value, w0=-1, wa=0); fit_labels=["ns", "H0", "ωb", "ωc", "τ", "yₚ"]
+            elseif param == "H0"
+                fit_model = model_FS_BAO_CMB(D_FS_BAO_all, D_Lya, D_CMB) | (H0=fixed_value, w0=-1, wa=0); fit_labels=["ln10As", "ns", "ωb", "ωc", "τ", "yₚ"]
+            elseif param == "Ωm"
+                fit_model = model_FS_BAO_CMB(D_FS_BAO_all, D_Lya, D_CMB) | (ωc=fixed_value, w0=-1, wa=0); fit_labels = ["ln10As", "ns", "H0", "ωb", "τ", "yₚ"]
             end
         elseif variation == "w0waCDM"
-            if param == "H0"
-                fit_model = model_BAO(D_BAO_all) | (ln10As=3.044, ns=0.9649, H0=fixed_value)
-                preconditioning_entries = [1/steps["ωb"], 1/steps["ωc"], 1/steps["w0"], 1/steps["wa"]]
-            #    init_param_labels = ["ωb", "ωc", "w0", "wa"]
-            elseif param == "ωc"
-                fit_model = model_BAO(D_BAO_all) | (ln10As=3.044, ns=0.9649, ωc=fixed_value)
-                preconditioning_entries = [1/steps["H0"], 1/steps["ωb"], 1/steps["w0"], 1/steps["wa"]]
-           #     init_param_labels = ["H0", "ωb", "w0", "wa"]
+            if param == "sigma8"
+                fit_model = model_FS_BAO_CMB(D_FS_BAO_all, D_Lya, D_CMB) | (ln10As=fixed_value,); fit_labels=["ns", "H0", "ωb", "ωc", "w0", "wa", "τ", "yₚ"]
+            elseif param == "H0"
+                fit_model = model_FS_BAO_CMB(D_FS_BAO_all, D_Lya, D_CMB) | (H0=fixed_value,); fit_labels=["ln10As", "ns", "ωb", "ωc", "w0", "wa", "τ", "yₚ"]
+            elseif param == "Ωm"
+                fit_model = model_FS_BAO_CMB(D_FS_BAO_all, D_Lya, D_CMB) | (ωc=fixed_value,); fit_labels = ["ln10As", "ns", "H0", "ωb", "w0", "wa", "τ", "yₚ"]
             elseif param == "w0"
-                fit_model = model_BAO(D_BAO_all) | (ln10As=3.044, ns=0.9649, w0=fixed_value)
-                preconditioning_entries = [1/steps["H0"], 1/steps["ωb"], 1/steps["ωc"], 1/steps["wa"]]
-          #      init_param_labels = ["H0", "ωb", "ωc", "wa"]
+                fit_model = model_FS_BAO_CMB(D_FS_BAO_all, D_Lya, D_CMB) | (w0=fixed_value,); fit_labels = ["ln10As", "ns", "H0", "ωb", "ωc", "wa", "τ", "yₚ"]
             elseif param == "wa"
-                fit_model = model_BAO(D_BAO_all) | (ln10As=3.044, ns=0.9649, wa=fixed_value)
-                preconditioning_entries = [1/steps["H0"], 1/steps["ωb"], 1/steps["ωc"], 1/steps["w0"]]
-          #      init_param_labels = ["H0", "ωb", "ωc", "w0"]
-            end
+                fit_model = model_FS_BAO_CMB(D_FS_BAO_all, D_Lya, D_CMB) | (wa=fixed_value,); fit_labels = ["ln10As", "ns", "H0", "ωb", "ωc", "w0", "τ", "yₚ"]
+            end # need to also add Mb parameter for supernovae in case adding that
         end
     end
-    if dataset in ["FS", "FS+BAO"]
-        append!(preconditioning_entries, repeat([1/steps["b1p"], 1/steps["b2p"], 1/steps["bsp"], 1/steps["alpha0p"], 1/steps["alpha2p"], 1/steps["st0p"], 1/steps["st2p"]], length(tracer_vector)))
-      #  append!(init_param_labels, repeat(["b1p", "b2p", "bsp", "alpha0p", "alpha2p", "st0p", "st2p"], length(tracer_vector)))
+    for tracer in tracer_vector
+        append!(fit_labels, ["b1p$(tracer)", "b2p$(tracer)", "bsp$(tracer)", "alpha0p$(tracer)", "alpha2p$(tracer)", "st0p$(tracer)", "st2p$(tracer)"]) # adds EFT parameters to list of varying parameters
     end
-    preconditioning_matrix = Diagonal(preconditioning_entries)
+    # Constructs the preconditioning matrix
+    preconditioning_matrix = Diagonal([1/preconditioning_steps[label] for label in fit_labels])
+
+    # Initiates arrays to store results
     profile_values_array = SharedArray{Float64}(n_runs)
     if dataset == "BAO"
         bestfit_values_array = SharedArray{Float64}((ncosmo_tot-3), n_runs)
@@ -1006,127 +985,23 @@ end
 
     for i in 1:n_runs
         try
-          #  init_values = []# chooses an initial from a smaller range than the emulator bounds
-          #  for param in init_param_labels
-           #     if param in ["ns", "ωb"]
-           #         guess = rand(Normal(init_values_ranges[param][1], init_values_ranges[param][2]))
-           #     else
-           #         guess = rand(Uniform(init_values_ranges[param][1], init_values_ranges[param][2]))
-            #    end
-            #    append!(init_values, guess)
-            #end
-            cosmo_param_guesses = [0.9649+rand(Normal(0, 0.042)), 74+rand(Normal(0, 2)), 0.02218+rand(Normal(0, 0.00055)), 0.12+rand(Uniform(-0.03, 0.03)), -0.6+rand(Normal(0, 0.5)), -1.5+rand(Normal(0,0.5))] # currently for w0waCDM
-            BGS_guesses = [1.1+rand(Normal(0, 0.2)), -1+rand(Normal(0, 2)), 2+rand(Normal(0, 2)), 50+rand(Normal(0, 20)), 0+rand(Normal(0, 50)), -5+rand(Normal(0, 2)), -5+rand(Normal(0, 2))]
-            LRG1_guesses = [1.25+rand(Normal(0, 0.2)), -1+rand(Normal(0, 2)), 1+rand(Normal(0, 2)), 25+rand(Normal(0, 20)), -50+rand(Normal(0, 50)), -5+rand(Normal(0, 2)), -5+rand(Normal(0, 2))]
-            LRG2_guesses = [1.2+rand(Normal(0, 0.2)), -1+rand(Normal(0, 2)), 1+rand(Normal(0, 2)), 10+rand(Normal(0, 20)), 0+rand(Normal(0, 50)), 0+rand(Normal(0, 2)), -2+rand(Normal(0, 2))]
-            LRG3_guesses = [1.2+rand(Normal(0, 0.2)), -0.5+rand(Normal(0, 2)), 0.5+rand(Normal(0, 2)), 20+rand(Normal(0, 20)), -50+rand(Normal(0, 50)), -1+rand(Normal(0, 2)), 1+rand(Normal(0, 2))]
-            ELG2_guesses = [0.65+rand(Normal(0, 0.2)), 0+rand(Normal(0, 2)), 0+rand(Normal(0, 2)), 25, -25+rand(Normal(0, 20)), -1+rand(Normal(0, 2)), -5+rand(Normal(0, 2))]
-            QSO_guesses = [0.95+rand(Normal(0, 0.2)), -0.5+rand(Normal(0, 2)), 0.5+rand(Normal(0, 2)), 25+rand(Normal(0, 20)), -25+rand(Normal(0, 50)), -0.1+rand(Normal(0, 0.2)), -1+rand(Normal(0, 2))]
-            fit_result = maximum_a_posteriori(fit_model, LBFGS(m=50, P=preconditioning_matrix); initial_params=vcat(cosmo_param_guesses, BGS_guesses, LRG1_guesses, LRG2_guesses, LRG3_guesses, ELG2_guesses, QSO_guesses))
+            # Constructs different initial guesses for each run
+            init_guesses = [rand(Normal(init_values_ranges[label][1], init_values_ranges[label][2])) for label in fit_labels]
+          #  cosmo_param_guesses = [0.9649+rand(Normal(0, 0.042)), 74+rand(Normal(0, 2)), 0.02218+rand(Normal(0, 0.00055)), 0.12+rand(Uniform(-0.03, 0.03)), -0.6+rand(Normal(0, 0.5)), -1.5+rand(Normal(0,0.5))] # currently for w0waCDM
+          #  BGS_guesses = [1.1+rand(Normal(0, 0.2)), -1+rand(Normal(0, 2)), 2+rand(Normal(0, 2)), 50+rand(Normal(0, 20)), 0+rand(Normal(0, 50)), -5+rand(Normal(0, 2)), -5+rand(Normal(0, 2))]
+          #  LRG1_guesses = [1.25+rand(Normal(0, 0.2)), -1+rand(Normal(0, 2)), 1+rand(Normal(0, 2)), 25+rand(Normal(0, 20)), -50+rand(Normal(0, 50)), -5+rand(Normal(0, 2)), -5+rand(Normal(0, 2))]
+          #  LRG2_guesses = [1.2+rand(Normal(0, 0.2)), -1+rand(Normal(0, 2)), 1+rand(Normal(0, 2)), 10+rand(Normal(0, 20)), 0+rand(Normal(0, 50)), 0+rand(Normal(0, 2)), -2+rand(Normal(0, 2))]
+          #  LRG3_guesses = [1.2+rand(Normal(0, 0.2)), -0.5+rand(Normal(0, 2)), 0.5+rand(Normal(0, 2)), 20+rand(Normal(0, 20)), -50+rand(Normal(0, 50)), -1+rand(Normal(0, 2)), 1+rand(Normal(0, 2))]
+          #  ELG2_guesses = [0.65+rand(Normal(0, 0.2)), 0+rand(Normal(0, 2)), 0+rand(Normal(0, 2)), 25, -25+rand(Normal(0, 20)), -1+rand(Normal(0, 2)), -5+rand(Normal(0, 2))]
+          #  QSO_guesses = [0.95+rand(Normal(0, 0.2)), -0.5+rand(Normal(0, 2)), 0.5+rand(Normal(0, 2)), 25+rand(Normal(0, 20)), -25+rand(Normal(0, 50)), -0.1+rand(Normal(0, 0.2)), -1+rand(Normal(0, 2))]
+            fit_result = maximum_a_posteriori(fit_model, LBFGS(m=50, P=preconditioning_matrix); initial_params=init_guesses)#initial_params=vcat(cosmo_param_guesses, BGS_guesses, LRG1_guesses, LRG2_guesses, LRG3_guesses, ELG2_guesses, QSO_guesses))
             profile_values_array[i] = fit_result.lp
             bestfit_values_array[:, i] = fit_result.values.array
-            #println("worker OKAY")
         catch e 
             println("worker fucked")
-            #println(e)
         end
     end
     return [profile_values_array, bestfit_values_array]
 end
-
-    ## Specifies the given model for the worker
-    #if dataset == "FS" # change these to the conditioning syntax##################################################################################################
-    #    fit_model = model_FS(D_LSS_all, iΓ_LSS_all, fixed_value, param, variation, FS_emus, BAO_emu, tracer_vector, nd_all, fsat_all, sigv_all, kin_all, wmat_all)
-    #elseif dataset == "BAO"
-    #    fit_model = model_BAO(D_LSS_all, iΓ_LSS_all, D_Lya, iΓ_Lya, fixed_value, param, variation, BAO_emu, tracer_vector, zeff_all)
-    #elseif dataset == "FS+BAO"
-    #    fit_model = model_FS_BAO(D_LSS_all, iΓ_LSS_all, D_Lya, iΓ_Lya, fixed_value, param, variation, FS_emus, BAO_emu, tracer_vector, zeff_all, nd_all, fsat_all, sigv_all, kin_all, wmat_all)
-    #elseif dataset == "FS+BAO+CMB"
-    #    fit_model = model_FS_BAO_CMB(D_LSS_all, iΓ_LSS_all, D_Lya, iΓ_Lya, D_CMB, iΓ_CMB, fixed_vaue, param, variation, FS_emus, BAO_emu, CMB_emus, tracer_vector, zeff_all, nd_all, fsat_all, sigv_all, kin_all, wmat_all)
-    #elseif dataset == "FS+BAO+CMB+SN"
-    #    if SN_type == "DESY5"
-    #        D_SN = D_DESY5SN
-    #        iΓ_SN = iΓ_DESY5SN
-    #        z_SN = z_DESY5SN
-    #    elseif SN_type == "PantheonPlus"
-    #        D_SN = D_PantheonPlusSN
-    #        iΓ_SN = iΓ_PantheonPlusSN
-    #        z_SN = z_PantheonPlusSN
-    #    elseif SN_type == "Union3"
-    #        D_SN = D_Union3SN
-    #        iΓ_SN = iΓ_Union3SN
-    #        z_SN = z_Union3SN
-    #    end
-    #    fit_model = model_FS_BAO_CMB_SN(D_LSS_all, iΓ_LSS_all, D_Lya, iΓ_Lya, D_CMB, iΓ_CMB, D_SN, iΓ_SN, z_SN, fixed_value, param, variation, FS_emus, BAO_emu, CMB_emus, tracer_vector, zeff_all, nd_all, fsat_all, sigv_all, kin_all, wmat_all)
-    #end##
-
-    ## Specifies the number of bestfit parameters
-    #if dataset in ["FS", "BAO", "FS+BAO"]
-    #    if variation == "LCDM"
-    #        ncosmo = 5
-    #    elseif variation == "w0waCDM"
-    #        ncosmo = 7
-    #    end
-    #elseif dataset == "FS+BAO+CMB"
-    #    if variation == "LCDM"
-    #        ncosmo = 8
-    #    elseif variation == "w0waCDM"
-    #        ncosmo = 10
-    #    end
-    #elseif dataset == "FS+BAO+CMB+SN"
-    #    if variation == "LCDM"
-    #        ncosmo = 9
-    #    elseif variation == "w0waCDM"
-    #        ncosmo = 11
-    #    end
-    #end
-    #profile_values_array = SharedArray{Float64}(n_runs)
-    #if dataset == "BAO"
-    #    bestfit_values_array = SharedArray{Float64}((ncosmo-1), n_runs)
-    #else
-    #    bestfit_values_array = SharedArray{Float64}((ncosmo-1)+7*size(tracer_vector)[1], n_runs)
-    #end#
-
-    ## Initiates the given preconditioning matrix (to help with LBFGS convergence)
-    #preconditioning_steps = Dict("ln10As" => 0.1, "ns" => 0.01, "H0" => 1, "ωb" => 0.0001, "ωc" => 0.01, "τ" => 0.01, "w0" => 1, "wa" => 1, "yₚ" => 0.001, "Mb" => 0.1, "b1p" => 0.1, "b2p" => 1, "bsp" => 1, "alpha0p" => 10, "alpha2p" => 10, "st0p" => 1, "st2p" => 1)##############################################
-    #if dataset in ["FS", "BAO", "FS+BAO"]
-    #    if variation == "LCDM"
-    #        preconditioning_entries = ["ln10As", "ns", "H0", "ωb", "ωc"]
-    #    elseif variation == "w0waCDM"
-    #        preconditioning_entries = ["ln10As", "ns", "H0", "ωb", "ωc", "w0", "wa"]
-    #    end
-    #elseif dataset == "FS+BAO+CMB"
-    #    if variation == "LCDM"
-    #        preconditioning_entries = ["ln10As", "ns", "H0", "ωb", "ωc", "τ", "yₚ"]
-    #    elseif variation == "w0waCDM"
-    #        preconditioning_entries = ["ln10As", "ns", "H0", "ωb", "ωc", "τ", "w0", "wa", "yₚ"]
-    #    end
-    #elseif dataset == "FS+BAO+CMB+SN"
-    #    if variation == "LCDM"
-    #        preconditioning_entries = ["ln10As", "ns", "H0", "ωb", "ωc", "τ", "yₚ", "Mb"]
-    #    elseif variation == "w0waCDM"
-    #        preconditioning_entries = ["ln10As", "ns", "H0", "ωb", "ωc", "τ", "w0", "wa", "yₚ", "Mb"]
-    #    end
-    #end
-    #if dataset != "BAO"
-    #    for i in 1:length(tracer_vector)
-    #        append!(preconditioning_entries, ["b1p", "b2p", "bsp", "alpha0p", "alpha2p", "st0p", "st2p"]) # adds EFT parameters to list of preconditioning parameters (in all cases)
-    #    end
-    #end
-    ## Removes the parameter actually being queried
-    #filter!(x -> x ≠ param, preconditioning_entries)
-    ## Actually constructs the preconditioning matrix
-    #preconditioning_diagonal_entries = [1/preconditioning_steps[preconditioning_entries[i]] for i in 1:length(preconditioning_entries)]
-    #preconditioning_matrix = Diagonal(preconditioning_diagonal_entries)#
-
-    ## Performs many independent runs in order to reach global minima
-    #for i in 1:n_runs
-    #    fit_result = maximum_likelihood(fit_model, LBFGS(m=30))#, P=preconditioning_matrix)) # add initial values if needed!
-    #    profile_values_array[i] = fit_result.lp
-    #    bestfit_values_array[:, i] = fit_result.values.array
-    #end
-    ## Returns array of all best fits for each of the different runs
-    #return [profile_values_array, bestfit_values_array]
-#end
 
 main()
