@@ -108,6 +108,22 @@ data_DESY5SN = DESY5SN.obs_flatdata
 iΓ_DESY5SN = inv(Γ_DESY5SN)
 D_DESY5SN = iΓ_DESY5SN * data_DESY5SN
 
+PantheonPlusSN = PantheonPlusSN_info()
+z_PantheonPlusSN = PantheonPlusSN.data.zHD
+cov_PantheonPlusSN = PantheonPlusSN.covariance
+data_PantheonPlusSN = PantheonPlusSN.obs_flatdata
+Γ_PantheonPlusSN = sqrt(cov_PantheonPlusSN)
+iΓ_PantheonPlusSN = inv(Γ_PantheonPlusSN)
+D_PantheonPlusSN = iΓ_PantheonPlusSN * data_PantheonPlusSN
+
+Union3SN = Union3SN_info()
+z_Union3SN = Union3SN.data.zHD
+cov_Union3SN = Union3SN.covariance
+data_Union3SN = Union3SN.obs_flatdata
+Γ_Union3SN = sqrt(cov_Union3SN)
+iΓ_Union3SN = inv(Γ_Union3SN)
+D_Union3SN = iΓ_Union3SN * data_Union3SN
+
 mono_paths = Dict(tracer => FS_emu_dir * string(zindex_all[tracer]) * "/0/" for tracer in tracers)
 quad_paths = Dict(tracer => FS_emu_dir * string(zindex_all[tracer]) * "/2/" for tracer in tracers)
 hexa_paths = Dict(tracer => FS_emu_dir * string(zindex_all[tracer]) * "/4/" for tracer in tracers)
@@ -709,13 +725,16 @@ FS_BAO_model_LCDM = model_FS_BAO(D_FS_BAO_all, D_Lya) | (w0=-1, wa=0)
 FS_BAO_model_w0waCDM = model_FS_BAO(D_FS_BAO_all, D_Lya)
 FS_BAO_CMB_model_LCDM = model_FS_BAO_CMB(D_FS_BAO_all, D_Lya, D_CMB) | (w0=-1, wa=0)
 FS_BAO_CMB_model_w0waCDM = model_FS_BAO_CMB(D_FS_BAO_all, D_Lya, D_CMB)
-FS_BAO_CMB_SN_model_LCDM = model_FS_BAO_CMB_SN(D_FS_BAO_all, D_Lya, D_CMB, iΓ_DESY5SN, D_DESY5SN, z_DESY5SN) | (w0=-1, wa=0)
-FS_BAO_CMB_SN_model_w0waCDM = model_FS_BAO_CMB_SN(D_FS_BAO_all, D_Lya, D_CMB, iΓ_DESY5SN, D_DESY5SN, z_DESY5SN)
+FS_BAO_CMB_DESY5SN_model_LCDM = model_FS_BAO_CMB_SN(D_FS_BAO_all, D_Lya, D_CMB, iΓ_DESY5SN, D_DESY5SN, z_DESY5SN) | (w0=-1, wa=0)
+FS_BAO_CMB_DESY5SN_model_w0waCDM = model_FS_BAO_CMB_SN(D_FS_BAO_all, D_Lya, D_CMB, iΓ_DESY5SN, D_DESY5SN, z_DESY5SN)
+FS_BAO_CMB_PantheonPlusSN_model_LCDM = model_FS_BAO_CMB_SN(D_FS_BAO_all, D_Lya, D_CMB, iΓ_PantheonPlusSN, D_PantheonPlusSN, z_PantheonPlusSN) | (w0=-1, wa=0)
+FS_BAO_CMB_PantheonPlusSN_model_w0waCDM = model_FS_BAO_CMB_SN(D_FS_BAO_all, D_Lya, D_CMB, iΓ_PantheonPlusSN, D_PantheonPlusSN, z_PantheonPlusSN)
+FS_BAO_CMB_Union3SN_model_LCDM = model_FS_BAO_CMB_SN(D_FS_BAO_all, D_Lya, D_CMB, iΓ_Union3SN, D_Union3SN, z_Union3SN) | (w0=-1, wa=0)
+FS_BAO_CMB_Union3SN_model_w0waCDM = model_FS_BAO_CMB_SN(D_FS_BAO_all, D_Lya, D_CMB, iΓ_Union3SN, D_Union3SN, z_Union3SN)
 
-
-n_burn = 250
+n_burn = 50
 acceptance = 0.65
-n_steps = 250
+n_steps = 50
 
 if dataset == "FS"
     if variation == "LCDM"
@@ -741,12 +760,24 @@ elseif dataset == "FS+BAO+CMB"
     elseif variation == "w0waCDM"
         chain = sample(FS_BAO_CMB_model_w0waCDM, NUTS(n_burn, acceptance), n_steps)
     end
-elseif dataset == "FS+BAO+CMB+SN"
+elseif dataset == "FS+BAO+CMB+DESY5SN"
     if variation == "LCDM"
-        chain = sample(FS_BAO_CMB_SN_model_LCDM, NUTS(n_burn, acceptance), n_steps)
+        chain = sample(FS_BAO_CMB_DESY5SN_model_LCDM, NUTS(n_burn, acceptance), n_steps)
     elseif variation == "w0waCDM"
-        chain = sample(FS_BAO_CMB_SN_model_w0waCDM, NUTS(n_burn, acceptance), n_steps)
+        chain = sample(FS_BAO_CMB_DESY5SN_model_w0waCDM, NUTS(n_burn, acceptance), n_steps)
     end
+elseif dataset == "FS+BAO+CMB+PantheonPlusSN"
+    if variation == "LCDM"
+        chain = sample(FS_BAO_CMB_PantheonPlusSN_model_LCDM, NUTS(n_burn, acceptance), n_steps)
+    elseif variation == "w0waCDM"
+        chain = sample(FS_BAO_CMB_PantheonPlusSN_model_w0waCDM, NUTS(n_burn, acceptance), n_steps)
+    end
+elseif dataset == "FS+BAO+CMB+Union3SN"
+    if variation == "LCDM"
+        chain = sample(FS_BAO_CMB_Union3SN_model_LCDM, NUTS(n_burn, acceptance), n_steps)
+    elseif variation == "w0waCDM"
+        chain = sample(FS_BAO_CMB_Union3SN_model_w0waCDM, NUTS(n_burn, acceptance), n_steps)
+    end   
 end
 
 chain_array = Array(chain)
