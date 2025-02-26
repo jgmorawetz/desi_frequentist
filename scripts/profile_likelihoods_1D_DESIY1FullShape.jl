@@ -37,7 +37,7 @@ function main()
     @add_arg_table config begin
         "--n_runs"
         help="Specify the number of runs"
-        arg_type = Float64
+        arg_type = Int64
         required = true
         "--param" 
         help = "Specify the parameter" 
@@ -970,7 +970,7 @@ end
         end
     end
     for tracer in tracer_vector
-        append!(fit_labels, ["b1p$(tracer)", "b2p$(tracer)", "bsp$(tracer)", "alpha0p$(tracer)", "alpha2p$(tracer)", "st0p$(tracer)", "st2p$(tracer)"]) # adds EFT parameters to list of varying parameters
+        append!(fit_labels, ["b1p_$(tracer)", "b2p_$(tracer)", "bsp_$(tracer)", "alpha0p_$(tracer)", "alpha2p_$(tracer)", "st0p_$(tracer)", "st2p_$(tracer)"]) # adds EFT parameters to list of varying parameters
     end
     # Constructs the preconditioning matrix
     preconditioning_matrix = Diagonal([1/preconditioning_steps[label] for label in fit_labels])
