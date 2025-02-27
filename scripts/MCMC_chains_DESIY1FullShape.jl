@@ -108,21 +108,21 @@ data_DESY5SN = DESY5SN.obs_flatdata
 iΓ_DESY5SN = inv(Γ_DESY5SN)
 D_DESY5SN = iΓ_DESY5SN * data_DESY5SN
 
-PantheonPlusSN = PantheonPlusSN_info()
-z_PantheonPlusSN = PantheonPlusSN.data.zHD
-cov_PantheonPlusSN = PantheonPlusSN.covariance
-data_PantheonPlusSN = PantheonPlusSN.obs_flatdata
-Γ_PantheonPlusSN = sqrt(cov_PantheonPlusSN)
-iΓ_PantheonPlusSN = inv(Γ_PantheonPlusSN)
-D_PantheonPlusSN = iΓ_PantheonPlusSN * data_PantheonPlusSN
+#PantheonPlusSN = PantheonPlusSN_info()
+#z_PantheonPlusSN = PantheonPlusSN.data.zHD
+#cov_PantheonPlusSN = PantheonPlusSN.covariance
+#data_PantheonPlusSN = PantheonPlusSN.obs_flatdata
+#Γ_PantheonPlusSN = sqrt(cov_PantheonPlusSN)
+#iΓ_PantheonPlusSN = inv(Γ_PantheonPlusSN)
+#D_PantheonPlusSN = iΓ_PantheonPlusSN * data_PantheonPlusSN#
 
-Union3SN = Union3SN_info()
-z_Union3SN = Union3SN.data.zHD
-cov_Union3SN = Union3SN.covariance
-data_Union3SN = Union3SN.obs_flatdata
-Γ_Union3SN = sqrt(cov_Union3SN)
-iΓ_Union3SN = inv(Γ_Union3SN)
-D_Union3SN = iΓ_Union3SN * data_Union3SN
+#Union3SN = Union3SN_info()
+#z_Union3SN = Union3SN.data.zHD
+#cov_Union3SN = Union3SN.covariance
+#data_Union3SN = Union3SN.obs_flatdata
+#Γ_Union3SN = sqrt(cov_Union3SN)
+#iΓ_Union3SN = inv(Γ_Union3SN)
+#D_Union3SN = iΓ_Union3SN * data_Union3SN
 
 mono_paths = Dict(tracer => FS_emu_dir * string(zindex_all[tracer]) * "/0/" for tracer in tracers)
 quad_paths = Dict(tracer => FS_emu_dir * string(zindex_all[tracer]) * "/2/" for tracer in tracers)
@@ -229,9 +229,9 @@ end
 @model function model_FS(D_FS_all)
     # Draws cosmological parameters
     ln10As ~ Uniform(cosmo_ranges["ln10As"][1], cosmo_ranges["ln10As"][2])
-    ns ~ Truncated(Normal(cosmo_priors["ns"][1], cosmo_priors["ns"][2]), 0.8, 1.1)               # might need to adjust if using MAP
+    ns ~ Truncated(Normal(cosmo_priors["ns"][1], cosmo_priors["ns"][2]), 0.8, 1.1)               
     H0 ~ Uniform(cosmo_ranges["H0"][1], cosmo_ranges["H0"][2])
-    ωb ~ Truncated(Normal(cosmo_priors["ωb"][1], cosmo_priors["ωb"][2]), 0.02, 0.025)                # might need to adjust if using MAP
+    ωb ~ Uniform(cosmo_ranges["ωb"][1], cosmo_ranges["ωb"][2]); mean_bbn, cov_bbn = [0.02196, 3.034], [4.03112260e-7 7.30390042e-5; 7.30390042e-5 4.52831584e-2]; x = Array([ωb, 3.044]); x ~ MvNormal(mean_bbn, cov_bbn)               
     ωc ~ Uniform(cosmo_ranges["ωc"][1], cosmo_ranges["ωc"][2])
     w0 ~ Uniform(cosmo_ranges["w0"][1], cosmo_ranges["w0"][2])
     wa ~ Uniform(cosmo_ranges["wa"][1], cosmo_ranges["wa"][2])
@@ -338,9 +338,9 @@ end
 @model function model_BAO(D_BAO_all, D_Lya)
     # Draws cosmological parameters
     ln10As ~ Uniform(cosmo_ranges["ln10As"][1], cosmo_ranges["ln10As"][2])
-    ns ~ Truncated(Normal(cosmo_priors["ns"][1], cosmo_priors["ns"][2]), 0.8, 1.1)               # might need to adjust if using MAP
+    ns ~ Truncated(Normal(cosmo_priors["ns"][1], cosmo_priors["ns"][2]), 0.8, 1.1)               
     H0 ~ Uniform(cosmo_ranges["H0"][1], cosmo_ranges["H0"][2])
-    ωb ~ Truncated(Normal(cosmo_priors["ωb"][1], cosmo_priors["ωb"][2]), 0.02, 0.025)                # might need to adjust if using MAP
+    ωb ~ Uniform(cosmo_ranges["ωb"][1], cosmo_ranges["ωb"][2]); mean_bbn, cov_bbn = [0.02196, 3.034], [4.03112260e-7 7.30390042e-5; 7.30390042e-5 4.52831584e-2]; x = Array([ωb, 3.044]); x ~ MvNormal(mean_bbn, cov_bbn)              
     ωc ~ Uniform(cosmo_ranges["ωc"][1], cosmo_ranges["ωc"][2])
     w0 ~ Uniform(cosmo_ranges["w0"][1], cosmo_ranges["w0"][2])
     wa ~ Uniform(cosmo_ranges["wa"][1], cosmo_ranges["wa"][2])
@@ -359,9 +359,9 @@ end
 @model function model_FS_BAO(D_FS_BAO_all, D_Lya)
     # Draws cosmological parameters
     ln10As ~ Uniform(cosmo_ranges["ln10As"][1], cosmo_ranges["ln10As"][2])
-    ns ~ Truncated(Normal(cosmo_priors["ns"][1], cosmo_priors["ns"][2]), 0.8, 1.1)              # might need to adjust if using MAP
+    ns ~ Truncated(Normal(cosmo_priors["ns"][1], cosmo_priors["ns"][2]), 0.8, 1.1)             
     H0 ~ Uniform(cosmo_ranges["H0"][1], cosmo_ranges["H0"][2])
-    ωb ~ Truncated(Normal(cosmo_priors["ωb"][1], cosmo_priors["ωb"][2]), 0.02, 0.025)               # might need to adjust if using MAP
+    ωb ~ Uniform(cosmo_ranges["ωb"][1], cosmo_ranges["ωb"][2]); mean_bbn, cov_bbn = [0.02196, 3.034], [4.03112260e-7 7.30390042e-5; 7.30390042e-5 4.52831584e-2]; x = Array([ωb, 3.044]); x ~ MvNormal(mean_bbn, cov_bbn)               
     ωc ~ Uniform(cosmo_ranges["ωc"][1], cosmo_ranges["ωc"][2])
     w0 ~ Uniform(cosmo_ranges["w0"][1], cosmo_ranges["w0"][2])
     wa ~ Uniform(cosmo_ranges["wa"][1], cosmo_ranges["wa"][2])
@@ -472,9 +472,9 @@ end
 @model function model_FS_BAO_CMB(D_FS_BAO_all, D_Lya, D_CMB)
     # Draws cosmological parameters
     ln10As ~ Uniform(2.5, 3.5)
-    ns ~ Uniform(0.88, 1.05)             # might need to adjust if using MAP
+    ns ~ Uniform(0.88, 1.05)             
     H0 ~ Uniform(cosmo_ranges["H0"][1], cosmo_ranges["H0"][2])
-    ωb ~ Uniform(cosmo_ranges["ωb"][1], cosmo_ranges["ωb"][2])           # might need to adjust if using MAP
+    ωb ~ Uniform(cosmo_ranges["ωb"][1], cosmo_ranges["ωb"][2])           
     ωc ~ Uniform(0.09, 0.2)
     w0 ~ Uniform(cosmo_ranges["w0"][1], cosmo_ranges["w0"][2])
     wa ~ Uniform(cosmo_ranges["wa"][1], cosmo_ranges["wa"][2])
@@ -593,9 +593,9 @@ end
 @model function model_FS_BAO_CMB_SN(D_FS_BAO_all, D_Lya, D_CMB, iΓ_SN, D_SN, z_SN)
     # Draws cosmological parameters
     ln10As ~ Uniform(2.5, 3.5)
-    ns ~ Uniform(0.88, 1.05)             # might need to adjust if using MAP
+    ns ~ Uniform(0.88, 1.05)             
     H0 ~ Uniform(cosmo_ranges["H0"][1], cosmo_ranges["H0"][2])
-    ωb ~ Uniform(cosmo_ranges["ωb"][1], cosmo_ranges["ωb"][2])           # might need to adjust if using MAP
+    ωb ~ Uniform(cosmo_ranges["ωb"][1], cosmo_ranges["ωb"][2])           
     ωc ~ Uniform(0.09, 0.2)
     w0 ~ Uniform(cosmo_ranges["w0"][1], cosmo_ranges["w0"][2])
     wa ~ Uniform(cosmo_ranges["wa"][1], cosmo_ranges["wa"][2])
@@ -727,14 +727,14 @@ FS_BAO_CMB_model_LCDM = model_FS_BAO_CMB(D_FS_BAO_all, D_Lya, D_CMB) | (w0=-1, w
 FS_BAO_CMB_model_w0waCDM = model_FS_BAO_CMB(D_FS_BAO_all, D_Lya, D_CMB)
 FS_BAO_CMB_DESY5SN_model_LCDM = model_FS_BAO_CMB_SN(D_FS_BAO_all, D_Lya, D_CMB, iΓ_DESY5SN, D_DESY5SN, z_DESY5SN) | (w0=-1, wa=0)
 FS_BAO_CMB_DESY5SN_model_w0waCDM = model_FS_BAO_CMB_SN(D_FS_BAO_all, D_Lya, D_CMB, iΓ_DESY5SN, D_DESY5SN, z_DESY5SN)
-FS_BAO_CMB_PantheonPlusSN_model_LCDM = model_FS_BAO_CMB_SN(D_FS_BAO_all, D_Lya, D_CMB, iΓ_PantheonPlusSN, D_PantheonPlusSN, z_PantheonPlusSN) | (w0=-1, wa=0)
-FS_BAO_CMB_PantheonPlusSN_model_w0waCDM = model_FS_BAO_CMB_SN(D_FS_BAO_all, D_Lya, D_CMB, iΓ_PantheonPlusSN, D_PantheonPlusSN, z_PantheonPlusSN)
-FS_BAO_CMB_Union3SN_model_LCDM = model_FS_BAO_CMB_SN(D_FS_BAO_all, D_Lya, D_CMB, iΓ_Union3SN, D_Union3SN, z_Union3SN) | (w0=-1, wa=0)
-FS_BAO_CMB_Union3SN_model_w0waCDM = model_FS_BAO_CMB_SN(D_FS_BAO_all, D_Lya, D_CMB, iΓ_Union3SN, D_Union3SN, z_Union3SN)
+#FS_BAO_CMB_PantheonPlusSN_model_LCDM = model_FS_BAO_CMB_SN(D_FS_BAO_all, D_Lya, D_CMB, iΓ_PantheonPlusSN, D_PantheonPlusSN, z_PantheonPlusSN) | (w0=-1, wa=0)
+#FS_BAO_CMB_PantheonPlusSN_model_w0waCDM = model_FS_BAO_CMB_SN(D_FS_BAO_all, D_Lya, D_CMB, iΓ_PantheonPlusSN, D_PantheonPlusSN, z_PantheonPlusSN)
+#FS_BAO_CMB_Union3SN_model_LCDM = model_FS_BAO_CMB_SN(D_FS_BAO_all, D_Lya, D_CMB, iΓ_Union3SN, D_Union3SN, z_Union3SN) | (w0=-1, wa=0)
+#FS_BAO_CMB_Union3SN_model_w0waCDM = model_FS_BAO_CMB_SN(D_FS_BAO_all, D_Lya, D_CMB, iΓ_Union3SN, D_Union3SN, z_Union3SN)
 
 n_burn = 50
 acceptance = 0.65
-n_steps = 50
+n_steps = 100
 
 if dataset == "FS"
     if variation == "LCDM"
@@ -766,19 +766,19 @@ elseif dataset == "FS+BAO+CMB+DESY5SN"
     elseif variation == "w0waCDM"
         chain = sample(FS_BAO_CMB_DESY5SN_model_w0waCDM, NUTS(n_burn, acceptance), n_steps)
     end
-elseif dataset == "FS+BAO+CMB+PantheonPlusSN"
-    if variation == "LCDM"
-        chain = sample(FS_BAO_CMB_PantheonPlusSN_model_LCDM, NUTS(n_burn, acceptance), n_steps)
-    elseif variation == "w0waCDM"
-        chain = sample(FS_BAO_CMB_PantheonPlusSN_model_w0waCDM, NUTS(n_burn, acceptance), n_steps)
-    end
-elseif dataset == "FS+BAO+CMB+Union3SN"
-    if variation == "LCDM"
-        chain = sample(FS_BAO_CMB_Union3SN_model_LCDM, NUTS(n_burn, acceptance), n_steps)
-    elseif variation == "w0waCDM"
-        chain = sample(FS_BAO_CMB_Union3SN_model_w0waCDM, NUTS(n_burn, acceptance), n_steps)
-    end   
+#elseif dataset == "FS+BAO+CMB+PantheonPlusSN"
+#    if variation == "LCDM"
+#        chain = sample(FS_BAO_CMB_PantheonPlusSN_model_LCDM, NUTS(n_burn, acceptance), n_steps)
+#    elseif variation == "w0waCDM"
+#        chain = sample(FS_BAO_CMB_PantheonPlusSN_model_w0waCDM, NUTS(n_burn, acceptance), n_steps)
+#    end
+#elseif dataset == "FS+BAO+CMB+Union3SN"
+#    if variation == "LCDM"
+#        chain = sample(FS_BAO_CMB_Union3SN_model_LCDM, NUTS(n_burn, acceptance), n_steps)
+#    elseif variation == "w0waCDM"
+#        chain = sample(FS_BAO_CMB_Union3SN_model_w0waCDM, NUTS(n_burn, acceptance), n_steps)
+#    end   
 end
 
 chain_array = Array(chain)
-npzwrite(save_folder * "$(dataset)_$(variation)_chain_with_DESI_EFT_priors.npy", chain_array)
+npzwrite(save_folder * "$(dataset)_$(variation)_chain_with_DESI_EFT_priors_fixed_omegab_convention.npy", chain_array)

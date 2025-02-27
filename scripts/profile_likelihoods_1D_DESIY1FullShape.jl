@@ -378,16 +378,16 @@ end
 @everywhere @model function model_FS(D_FS_all)
     # Draws cosmological parameters
     ln10As ~ Uniform(cosmo_ranges["ln10As"][1], cosmo_ranges["ln10As"][2])
-    ns ~ Truncated(Normal(cosmo_priors["ns"][1], cosmo_priors["ns"][2]), 0.8, 1.1)               # might need to adjust if using MAP
+    ns ~ Truncated(Normal(cosmo_priors["ns"][1], cosmo_priors["ns"][2]), 0.8, 1.1)               
     H0 ~ Uniform(cosmo_ranges["H0"][1], cosmo_ranges["H0"][2])
-    ωb ~ Truncated(Normal(cosmo_priors["ωb"][1], cosmo_priors["ωb"][2]), 0.02, 0.025)                # might need to adjust if using MAP
+    ωb ~ Uniform(cosmo_ranges["ωb"][1], cosmo_ranges["ωb"][2]); mean_bbn, cov_bbn = [0.02196, 3.034], [4.03112260e-7 7.30390042e-5; 7.30390042e-5 4.52831584e-2]; x = Array([ωb, 3.044]); x ~ MvNormal(mean_bbn, cov_bbn) 
     ωc ~ Uniform(cosmo_ranges["ωc"][1], cosmo_ranges["ωc"][2])
     w0 ~ Uniform(cosmo_ranges["w0"][1], cosmo_ranges["w0"][2])
     wa ~ Uniform(cosmo_ranges["wa"][1], cosmo_ranges["wa"][2])
     # Constructs parameter vector given samples drawn
     if param == "sigma8"
         cosmo_params = [ln10As_from_sigma8(ln10As, ns, H0, ωb, ωc, w0, wa), ns, H0, ωb, ωc, w0, wa] # ln10As (the input) is actually sigma8 in this case! converts to ln10As from sigma8 and other cosmo parameters
-    elseif param == "Ωm"
+    elseif param == "Om"
         cosmo_params = [ln10As, ns, H0, ωb, ωc*(H0/100)^2-ωb-0.00064419153, w0, wa] # ωc (the input) is actually omega matter in this case! converts to ωc from omega matter and other parameters
     else
         cosmo_params = [ln10As, ns, H0, ωb, ωc, w0, wa]
@@ -493,14 +493,14 @@ end
 @everywhere @model function model_BAO(D_BAO_all, D_Lya)
     # Draws cosmological parameters
     ln10As ~ Uniform(cosmo_ranges["ln10As"][1], cosmo_ranges["ln10As"][2])
-    ns ~ Truncated(Normal(cosmo_priors["ns"][1], cosmo_priors["ns"][2]), 0.8, 1.1)               # might need to adjust if using MAP
+    ns ~ Truncated(Normal(cosmo_priors["ns"][1], cosmo_priors["ns"][2]), 0.8, 1.1)              
     H0 ~ Uniform(cosmo_ranges["H0"][1], cosmo_ranges["H0"][2])
-    ωb ~ Truncated(Normal(cosmo_priors["ωb"][1], cosmo_priors["ωb"][2]), 0.02, 0.025)                # might need to adjust if using MAP
+    ωb ~ Uniform(cosmo_ranges["ωb"][1], cosmo_ranges["ωb"][2]); mean_bbn, cov_bbn = [0.02196, 3.034], [4.03112260e-7 7.30390042e-5; 7.30390042e-5 4.52831584e-2]; x = Array([ωb, 3.044]); x ~ MvNormal(mean_bbn, cov_bbn) 
     ωc ~ Uniform(cosmo_ranges["ωc"][1], cosmo_ranges["ωc"][2])
     w0 ~ Uniform(cosmo_ranges["w0"][1], cosmo_ranges["w0"][2])
     wa ~ Uniform(cosmo_ranges["wa"][1], cosmo_ranges["wa"][2])
     # Constructs parameter vector given samples drawn
-    if param == "Ωm"
+    if param == "Om"
         cosmo_params = [ln10As, ns, H0, ωb, ωc*(H0/100)^2-ωb-0.00064419153, w0, wa]
     else
         cosmo_params = [ln10As, ns, H0, ωb, ωc, w0, wa]
@@ -518,16 +518,16 @@ end
 @everywhere @model function model_FS_BAO(D_FS_BAO_all, D_Lya)
     # Draws cosmological parameters
     ln10As ~ Uniform(cosmo_ranges["ln10As"][1], cosmo_ranges["ln10As"][2])
-    ns ~ Truncated(Normal(cosmo_priors["ns"][1], cosmo_priors["ns"][2]), 0.8, 1.1)              # might need to adjust if using MAP
+    ns ~ Truncated(Normal(cosmo_priors["ns"][1], cosmo_priors["ns"][2]), 0.8, 1.1)            
     H0 ~ Uniform(cosmo_ranges["H0"][1], cosmo_ranges["H0"][2])
-    ωb ~ Truncated(Normal(cosmo_priors["ωb"][1], cosmo_priors["ωb"][2]), 0.02, 0.025)               # might need to adjust if using MAP
+    ωb ~ Uniform(cosmo_ranges["ωb"][1], cosmo_ranges["ωb"][2]); mean_bbn, cov_bbn = [0.02196, 3.034], [4.03112260e-7 7.30390042e-5; 7.30390042e-5 4.52831584e-2]; x = Array([ωb, 3.044]); x ~ MvNormal(mean_bbn, cov_bbn) 
     ωc ~ Uniform(cosmo_ranges["ωc"][1], cosmo_ranges["ωc"][2])
     w0 ~ Uniform(cosmo_ranges["w0"][1], cosmo_ranges["w0"][2])
     wa ~ Uniform(cosmo_ranges["wa"][1], cosmo_ranges["wa"][2])
     # Constructs parameter vector given samples drawn
     if param == "sigma8"
         cosmo_params = [ln10As_from_sigma8(ln10As, ns, H0, ωb, ωc, w0, wa), ns, H0, ωb, ωc, w0, wa] # ln10As (the input) is actually sigma8 in this case! converts to ln10As from sigma8 and other cosmo parameters
-    elseif param == "Ωm"
+    elseif param == "Om"
         cosmo_params = [ln10As, ns, H0, ωb, ωc*(H0/100)^2-ωb-0.00064419153, w0, wa] # ωc (the input) is actually omega matter in this case! converts to ωc from omega matter and other parameters
     else
         cosmo_params = [ln10As, ns, H0, ωb, ωc, w0, wa]
@@ -651,7 +651,7 @@ end
     if param == "sigma8"
         cosmo_params_FS_BAO = [ln10As_from_sigma8(ln10As, ns, H0, ωb, ωc, w0, wa), ns, H0, ωb, ωc, w0, wa]
         cosmo_params_CMB = [ln10As_from_sigma8(ln10As, ns, H0, ωb, ωc, w0, wa), ns, H0, ωb, ωc, τ, mν, w0, wa]
-    elseif param == "Ωm"
+    elseif param == "Om"
         cosmo_params_FS_BAO = [ln10As, ns, H0, ωb, ωc*(H0/100)^2-ωb-0.00064419153, w0, wa]
         cosmo_params_CMB = [ln10As, ns, H0, ωb, ωc*(H0/100)^2-ωb-0.00064419153, τ, mν, w0, wa]
     else
@@ -782,7 +782,7 @@ end
     if param == "sigma8"
         cosmo_params_FS_BAO = [ln10As_from_sigma8(ln10As, ns, H0, ωb, ωc, w0, wa), ns, H0, ωb, ωc, w0, wa]
         cosmo_params_CMB = [ln10As_from_sigma8(ln10As, ns, H0, ωb, ωc, w0, wa), ns, H0, ωb, ωc, τ, mν, w0, wa]
-    elseif param == "Ωm"
+    elseif param == "Om"
         cosmo_params_FS_BAO = [ln10As, ns, H0, ωb, ωc*(H0/100)^2-ωb-0.00064419153, w0, wa]
         cosmo_params_CMB = [ln10As, ns, H0, ωb, ωc*(H0/100)^2-ωb-0.00064419153, τ, mν, w0, wa]
     else
@@ -908,7 +908,7 @@ end
                 fit_model = model_FS(D_FS_all) | (ln10As=fixed_value, w0=-1, wa=0); fit_labels=["ns", "H0", "ωb", "ωc"]
             elseif param == "H0"
                 fit_model = model_FS(D_FS_all) | (H0=fixed_value, w0=-1, wa=0); fit_labels=["ln10As", "ns", "ωb", "ωc"]
-            elseif param == "Ωm"
+            elseif param == "Om"
                 fit_model = model_FS(D_FS_all) | (ωc=fixed_value, w0=-1, wa=0); fit_labels = ["ln10As", "ns", "H0", "ωb"]
             end
         elseif variation == "w0waCDM"
@@ -916,7 +916,7 @@ end
                 fit_model = model_FS(D_FS_all) | (ln10As=fixed_value,); fit_labels=["ns", "H0", "ωb", "ωc", "w0", "wa"]
             elseif param == "H0"
                 fit_model = model_FS(D_FS_all) | (H0=fixed_value,); fit_labels=["ln10As", "ns", "ωb", "ωc", "w0", "wa"]
-            elseif param == "Ωm"
+            elseif param == "Om"
                 fit_model = model_FS(D_FS_all) | (ωc=fixed_value,); fit_labels = ["ln10As", "ns", "H0", "ωb", "w0", "wa"]
             elseif param == "w0"
                 fit_model = model_FS(D_FS_all) | (w0=fixed_value,); fit_labels = ["ln10As", "ns", "H0", "ωb", "ωc", "wa"]
@@ -930,7 +930,7 @@ end
                 fit_model = model_FS_BAO(D_FS_BAO_all, D_Lya) | (ln10As=fixed_value, w0=-1, wa=0); fit_labels=["ns", "H0", "ωb", "ωc"]
             elseif param == "H0"
                 fit_model = model_FS_BAO(D_FS_BAO_all, D_Lya) | (H0=fixed_value, w0=-1, wa=0); fit_labels=["ln10As", "ns", "ωb", "ωc"]
-            elseif param == "Ωm"
+            elseif param == "Om"
                 fit_model = model_FS_BAO(D_FS_BAO_all, D_Lya) | (ωc=fixed_value, w0=-1, wa=0); fit_labels = ["ln10As", "ns", "H0", "ωb"]
             end
         elseif variation == "w0waCDM"
@@ -938,7 +938,7 @@ end
                 fit_model = model_FS_BAO(D_FS_BAO_all, D_Lya) | (ln10As=fixed_value,); fit_labels=["ns", "H0", "ωb", "ωc", "w0", "wa"]
             elseif param == "H0"
                 fit_model = model_FS_BAO(D_FS_BAO_all, D_Lya) | (H0=fixed_value,); fit_labels=["ln10As", "ns", "ωb", "ωc", "w0", "wa"]
-            elseif param == "Ωm"
+            elseif param == "Om"
                 fit_model = model_FS_BAO(D_FS_BAO_all, D_Lya) | (ωc=fixed_value,); fit_labels = ["ln10As", "ns", "H0", "ωb", "w0", "wa"]
             elseif param == "w0"
                 fit_model = model_FS_BAO(D_FS_BAO_all, D_Lya) | (w0=fixed_value,); fit_labels = ["ln10As", "ns", "H0", "ωb", "ωc", "wa"]
@@ -952,7 +952,7 @@ end
                 fit_model = model_FS_BAO_CMB(D_FS_BAO_all, D_Lya, D_CMB) | (ln10As=fixed_value, w0=-1, wa=0); fit_labels=["ns", "H0", "ωb", "ωc", "τ", "yₚ"]
             elseif param == "H0"
                 fit_model = model_FS_BAO_CMB(D_FS_BAO_all, D_Lya, D_CMB) | (H0=fixed_value, w0=-1, wa=0); fit_labels=["ln10As", "ns", "ωb", "ωc", "τ", "yₚ"]
-            elseif param == "Ωm"
+            elseif param == "Om"
                 fit_model = model_FS_BAO_CMB(D_FS_BAO_all, D_Lya, D_CMB) | (ωc=fixed_value, w0=-1, wa=0); fit_labels = ["ln10As", "ns", "H0", "ωb", "τ", "yₚ"]
             end
         elseif variation == "w0waCDM"
@@ -960,7 +960,7 @@ end
                 fit_model = model_FS_BAO_CMB(D_FS_BAO_all, D_Lya, D_CMB) | (ln10As=fixed_value,); fit_labels=["ns", "H0", "ωb", "ωc", "w0", "wa", "τ", "yₚ"]
             elseif param == "H0"
                 fit_model = model_FS_BAO_CMB(D_FS_BAO_all, D_Lya, D_CMB) | (H0=fixed_value,); fit_labels=["ln10As", "ns", "ωb", "ωc", "w0", "wa", "τ", "yₚ"]
-            elseif param == "Ωm"
+            elseif param == "Om"
                 fit_model = model_FS_BAO_CMB(D_FS_BAO_all, D_Lya, D_CMB) | (ωc=fixed_value,); fit_labels = ["ln10As", "ns", "H0", "ωb", "w0", "wa", "τ", "yₚ"]
             elseif param == "w0"
                 fit_model = model_FS_BAO_CMB(D_FS_BAO_all, D_Lya, D_CMB) | (w0=fixed_value,); fit_labels = ["ln10As", "ns", "H0", "ωb", "ωc", "wa", "τ", "yₚ"]
