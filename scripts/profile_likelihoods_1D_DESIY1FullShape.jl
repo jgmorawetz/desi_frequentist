@@ -987,13 +987,6 @@ end
         try
             # Constructs different initial guesses for each run
             init_guesses = [rand(Normal(init_values_ranges[label][1], init_values_ranges[label][2])) for label in fit_labels]
-          #  cosmo_param_guesses = [0.9649+rand(Normal(0, 0.042)), 74+rand(Normal(0, 2)), 0.02218+rand(Normal(0, 0.00055)), 0.12+rand(Uniform(-0.03, 0.03)), -0.6+rand(Normal(0, 0.5)), -1.5+rand(Normal(0,0.5))] # currently for w0waCDM
-          #  BGS_guesses = [1.1+rand(Normal(0, 0.2)), -1+rand(Normal(0, 2)), 2+rand(Normal(0, 2)), 50+rand(Normal(0, 20)), 0+rand(Normal(0, 50)), -5+rand(Normal(0, 2)), -5+rand(Normal(0, 2))]
-          #  LRG1_guesses = [1.25+rand(Normal(0, 0.2)), -1+rand(Normal(0, 2)), 1+rand(Normal(0, 2)), 25+rand(Normal(0, 20)), -50+rand(Normal(0, 50)), -5+rand(Normal(0, 2)), -5+rand(Normal(0, 2))]
-          #  LRG2_guesses = [1.2+rand(Normal(0, 0.2)), -1+rand(Normal(0, 2)), 1+rand(Normal(0, 2)), 10+rand(Normal(0, 20)), 0+rand(Normal(0, 50)), 0+rand(Normal(0, 2)), -2+rand(Normal(0, 2))]
-          #  LRG3_guesses = [1.2+rand(Normal(0, 0.2)), -0.5+rand(Normal(0, 2)), 0.5+rand(Normal(0, 2)), 20+rand(Normal(0, 20)), -50+rand(Normal(0, 50)), -1+rand(Normal(0, 2)), 1+rand(Normal(0, 2))]
-          #  ELG2_guesses = [0.65+rand(Normal(0, 0.2)), 0+rand(Normal(0, 2)), 0+rand(Normal(0, 2)), 25, -25+rand(Normal(0, 20)), -1+rand(Normal(0, 2)), -5+rand(Normal(0, 2))]
-          #  QSO_guesses = [0.95+rand(Normal(0, 0.2)), -0.5+rand(Normal(0, 2)), 0.5+rand(Normal(0, 2)), 25+rand(Normal(0, 20)), -25+rand(Normal(0, 50)), -0.1+rand(Normal(0, 0.2)), -1+rand(Normal(0, 2))]
             fit_result = maximum_a_posteriori(fit_model, LBFGS(m=50, P=preconditioning_matrix); initial_params=init_guesses)#initial_params=vcat(cosmo_param_guesses, BGS_guesses, LRG1_guesses, LRG2_guesses, LRG3_guesses, ELG2_guesses, QSO_guesses))
             profile_values_array[i] = fit_result.lp
             bestfit_values_array[:, i] = fit_result.values.array
