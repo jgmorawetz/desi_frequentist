@@ -9,6 +9,7 @@ using Effort
 using Capse
 using Turing
 using LinearAlgebra
+using NPZ
 
 
 # Specifies the dataset (e.g. "FS+BAO+CMB+DESY5SN") and cosmological model ("w0waCDM")
