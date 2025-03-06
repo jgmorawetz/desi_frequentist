@@ -1,3 +1,4 @@
+# Import statements
 using Pkg
 Pkg.activate(".")
 using ArgParse
@@ -20,10 +21,8 @@ using PlanckLite
 using SharedArrays
 using OptimizationOptimJL: ParticleSwarm
 using DataInterpolations
-println("finishing importing")
 
-
-
+# Specifies the dataset (e.g. "FS+BAO+CMB+DESY5SN") and cosmological model ("w0waCDM")
 config = ArgParseSettings()
 @add_arg_table config begin
     "--dataset"
@@ -35,7 +34,6 @@ config = ArgParseSettings()
     arg_type=String
     required=true
 end
-
 parsed_args = parse_args(config)
 dataset = parsed_args["dataset"]
 variation = parsed_args["variation"]
@@ -139,7 +137,7 @@ EE_emu = Capse.load_emulator(CMB_emu_dir * "/EE/")
 CMB_emus = [TT_emu, TE_emu, EE_emu]
 
 # Additional parameters needed for EFT basis change
-nd_all = Dict("BGS" => 5e-4, "LRG1" => 5e-4, "LRG2" => 5e-4, "LRG3" => 3e-4, "ELG2" => 5e-4, "QSO" => 3e-5)
+nd_all = Dict("BGS" => 1/5723, "LRG1" => 1/5082, "LRG2" => 1/5229, "LRG3" => 1/9574, "ELG2" => 1/10692, "QSO" => 1/47377)
 fsat_all = Dict("BGS" => 0.15, "LRG1" => 0.15, "LRG2" => 0.15, "LRG3" => 0.15, "ELG2" => 0.10, "QSO" => 0.03)
 sigv_all = Dict("BGS" => 150*(10)^(1/3)*(1+0.2)^(1/2)/70, 
                 "LRG1" => 150*(10)^(1/3)*(1+0.8)^(1/2)/70, 
@@ -229,9 +227,9 @@ end
 @model function model_FS(D_FS_all)
     # Draws cosmological parameters
     ln10As ~ Uniform(cosmo_ranges["ln10As"][1], cosmo_ranges["ln10As"][2])
-    ns ~ Truncated(Normal(cosmo_priors["ns"][1], cosmo_priors["ns"][2]), 0.8, 1.1)               
+    ns ~ Truncated(Normal(cosmo_priors["ns"][1], cosmo_priors["ns"][2]), cosmo_ranges["ns"][1], cosmo_ranges["ns"][2])               
     H0 ~ Uniform(cosmo_ranges["H0"][1], cosmo_ranges["H0"][2])
-    ωb ~ Uniform(cosmo_ranges["ωb"][1], cosmo_ranges["ωb"][2]); mean_bbn, cov_bbn = [0.02196, 3.034], [4.03112260e-7 7.30390042e-5; 7.30390042e-5 4.52831584e-2]; x = Array([ωb, 3.044]); x ~ MvNormal(mean_bbn, cov_bbn)               
+    ωb ~ Truncated(Normal(cosmo_priors["ωb"][1], cosmo_priors["ωb"][2]), cosmo_ranges["ωb"][1], cosmo_ranges["ωb"][2])            
     ωc ~ Uniform(cosmo_ranges["ωc"][1], cosmo_ranges["ωc"][2])
     w0 ~ Uniform(cosmo_ranges["w0"][1], cosmo_ranges["w0"][2])
     wa ~ Uniform(cosmo_ranges["wa"][1], cosmo_ranges["wa"][2])
@@ -243,7 +241,6 @@ end
                  "ELG2" => fsigma8_info[7], "QSO" => fsigma8_info[8])
     sigma8_all = Dict("BGS" => fsigma8_info[9], "LRG1" => fsigma8_info[10], "LRG2" => fsigma8_info[11], "LRG3" => fsigma8_info[12], 
                       "ELG2" => fsigma8_info[14], "QSO" => fsigma8_info[15])
-    # Draws EFT nuisance parameters
     # Iterates through each tracer
     for tracer in tracer_vector
         if tracer == "BGS"
@@ -338,9 +335,9 @@ end
 @model function model_BAO(D_BAO_all, D_Lya)
     # Draws cosmological parameters
     ln10As ~ Uniform(cosmo_ranges["ln10As"][1], cosmo_ranges["ln10As"][2])
-    ns ~ Truncated(Normal(cosmo_priors["ns"][1], cosmo_priors["ns"][2]), 0.8, 1.1)               
+    ns ~ Truncated(Normal(cosmo_priors["ns"][1], cosmo_priors["ns"][2]), cosmo_ranges["ns"][1], cosmo_ranges["ns"][2])               
     H0 ~ Uniform(cosmo_ranges["H0"][1], cosmo_ranges["H0"][2])
-    ωb ~ Uniform(cosmo_ranges["ωb"][1], cosmo_ranges["ωb"][2]); mean_bbn, cov_bbn = [0.02196, 3.034], [4.03112260e-7 7.30390042e-5; 7.30390042e-5 4.52831584e-2]; x = Array([ωb, 3.044]); x ~ MvNormal(mean_bbn, cov_bbn)              
+    ωb ~ Truncated(Normal(cosmo_priors["ωb"][1], cosmo_priors["ωb"][2]), cosmo_ranges["ωb"][1], cosmo_ranges["ωb"][2])            
     ωc ~ Uniform(cosmo_ranges["ωc"][1], cosmo_ranges["ωc"][2])
     w0 ~ Uniform(cosmo_ranges["w0"][1], cosmo_ranges["w0"][2])
     wa ~ Uniform(cosmo_ranges["wa"][1], cosmo_ranges["wa"][2])
@@ -356,12 +353,32 @@ end
     D_Lya ~ MvNormal(prediction_Lya, I)
 end
 
+@model function model_CMB(D_CMB)
+    # Draws cosmological parameters
+    ln10As ~ Uniform(2.5, 3.5)
+    ns ~ Uniform(0.88, 1.05)             
+    H0 ~ Uniform(cosmo_ranges["H0"][1], cosmo_ranges["H0"][2])
+    ωb ~ Uniform(cosmo_ranges["ωb"][1], cosmo_ranges["ωb"][2])           
+    ωc ~ Uniform(0.09, 0.2)
+    w0 ~ Uniform(cosmo_ranges["w0"][1], cosmo_ranges["w0"][2])
+    wa ~ Uniform(cosmo_ranges["wa"][1], cosmo_ranges["wa"][2])
+    # Parameters for CMB contribution
+    τ ~ Normal(0.0506, 0.0086)
+    mν = 0.06
+    yₚ ~ Normal(1.0, 0.0025)
+    # Constructs parameter vector given samples drawn
+    cosmo_params_CMB = [ln10As, ns, H0, ωb, ωc, τ, mν, w0, wa]
+    # Adds CMB contribution
+    prediction_CMB = iΓ_CMB * theory_CMB(cosmo_params_CMB, CMB_emus) ./ (yₚ^2)
+    D_CMB ~ MvNormal(prediction_CMB, I)
+end
+
 @model function model_FS_BAO(D_FS_BAO_all, D_Lya)
     # Draws cosmological parameters
     ln10As ~ Uniform(cosmo_ranges["ln10As"][1], cosmo_ranges["ln10As"][2])
-    ns ~ Truncated(Normal(cosmo_priors["ns"][1], cosmo_priors["ns"][2]), 0.8, 1.1)             
+    ns ~ Truncated(Normal(cosmo_priors["ns"][1], cosmo_priors["ns"][2]), cosmo_ranges["ns"][1], cosmo_ranges["ns"][2])               
     H0 ~ Uniform(cosmo_ranges["H0"][1], cosmo_ranges["H0"][2])
-    ωb ~ Uniform(cosmo_ranges["ωb"][1], cosmo_ranges["ωb"][2]); mean_bbn, cov_bbn = [0.02196, 3.034], [4.03112260e-7 7.30390042e-5; 7.30390042e-5 4.52831584e-2]; x = Array([ωb, 3.044]); x ~ MvNormal(mean_bbn, cov_bbn)               
+    ωb ~ Truncated(Normal(cosmo_priors["ωb"][1], cosmo_priors["ωb"][2]), cosmo_ranges["ωb"][1], cosmo_ranges["ωb"][2])            
     ωc ~ Uniform(cosmo_ranges["ωc"][1], cosmo_ranges["ωc"][2])
     w0 ~ Uniform(cosmo_ranges["w0"][1], cosmo_ranges["w0"][2])
     wa ~ Uniform(cosmo_ranges["wa"][1], cosmo_ranges["wa"][2])
@@ -721,6 +738,8 @@ FS_model_LCDM = model_FS(D_FS_all) | (w0=-1, wa=0)
 FS_model_w0waCDM = model_FS(D_FS_all)
 BAO_model_LCDM = model_BAO(D_BAO_all, D_Lya) | (ln10As=3.044, ns=0.9649, w0=-1, wa=0)
 BAO_model_w0waCDM = model_BAO(D_BAO_all, D_Lya) | (ln10As=3.044, ns=0.9649)
+CMB_model_LCDM = model_CMB(D_CMB) | (w0=-1, wa=0)
+CMB_model_w0waCDM = model_CMB(D_CMB)
 FS_BAO_model_LCDM = model_FS_BAO(D_FS_BAO_all, D_Lya) | (w0=-1, wa=0)
 FS_BAO_model_w0waCDM = model_FS_BAO(D_FS_BAO_all, D_Lya)
 FS_BAO_CMB_model_LCDM = model_FS_BAO_CMB(D_FS_BAO_all, D_Lya, D_CMB) | (w0=-1, wa=0)
@@ -732,9 +751,9 @@ FS_BAO_CMB_DESY5SN_model_w0waCDM = model_FS_BAO_CMB_SN(D_FS_BAO_all, D_Lya, D_CM
 #FS_BAO_CMB_Union3SN_model_LCDM = model_FS_BAO_CMB_SN(D_FS_BAO_all, D_Lya, D_CMB, iΓ_Union3SN, D_Union3SN, z_Union3SN) | (w0=-1, wa=0)
 #FS_BAO_CMB_Union3SN_model_w0waCDM = model_FS_BAO_CMB_SN(D_FS_BAO_all, D_Lya, D_CMB, iΓ_Union3SN, D_Union3SN, z_Union3SN)
 
-n_burn = 50
+n_burn = 500
 acceptance = 0.65
-n_steps = 100
+n_steps = 1000
 
 if dataset == "FS"
     if variation == "LCDM"
@@ -747,6 +766,12 @@ elseif dataset == "BAO"
         chain = sample(BAO_model_LCDM, NUTS(n_burn, acceptance), n_steps)
     elseif variation == "w0waCDM"
         chain = sample(BAO_model_w0waCDM, NUTS(n_burn, acceptance), n_steps)
+    end
+elseif dataset == "CMB"
+    if variation == "LCDM"
+        chain = sample(CMB_model_LCDM, NUTS(n_burn, acceptance), n_steps)
+    elseif variation == "w0waCDM"
+        chain = sample(CMB_model_w0waCDM, NUTS(n_burn, acceptance), n_steps)
     end
 elseif dataset == "FS+BAO"
     if variation == "LCDM"
@@ -779,6 +804,6 @@ elseif dataset == "FS+BAO+CMB+DESY5SN"
 #        chain = sample(FS_BAO_CMB_Union3SN_model_w0waCDM, NUTS(n_burn, acceptance), n_steps)
 #    end   
 end
-
+ 
 chain_array = Array(chain)
-npzwrite(save_folder * "$(dataset)_$(variation)_chain_with_DESI_EFT_priors_fixed_omegab_convention.npy", chain_array)
+npzwrite(save_folder * "$(dataset)_$(variation)_chain_with_DESI_EFT_priors_more_samples.npy", chain_array)

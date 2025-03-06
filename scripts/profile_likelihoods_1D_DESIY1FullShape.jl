@@ -198,7 +198,7 @@ function main()
     end
     
     # Additional parameters needed for EFT basis change
-    nd_all = Dict("BGS" => 5e-4, "LRG1" => 5e-4, "LRG2" => 5e-4, "LRG3" => 3e-4, "ELG2" => 5e-4, "QSO" => 3e-5)
+    nd_all = Dict("BGS" => 1/5723, "LRG1" => 1/5082, "LRG2" => 1/5229, "LRG3" => 1/9574, "ELG2" => 1/10692, "QSO" => 1/47377)
     fsat_all = Dict("BGS" => 0.15, "LRG1" => 0.15, "LRG2" => 0.15, "LRG3" => 0.15, "ELG2" => 0.10, "QSO" => 0.03)
     sigv_all = Dict("BGS" => 150*(10)^(1/3)*(1+0.2)^(1/2)/70, 
                     "LRG1" => 150*(10)^(1/3)*(1+0.8)^(1/2)/70, 
