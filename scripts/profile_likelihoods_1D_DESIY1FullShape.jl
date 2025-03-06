@@ -200,12 +200,7 @@ function main()
     # Additional parameters needed for EFT basis change
     nd_all = Dict("BGS" => 1/5723, "LRG1" => 1/5082, "LRG2" => 1/5229, "LRG3" => 1/9574, "ELG2" => 1/10692, "QSO" => 1/47377)
     fsat_all = Dict("BGS" => 0.15, "LRG1" => 0.15, "LRG2" => 0.15, "LRG3" => 0.15, "ELG2" => 0.10, "QSO" => 0.03)
-    sigv_all = Dict("BGS" => 150*(10)^(1/3)*(1+0.2)^(1/2)/70, 
-                    "LRG1" => 150*(10)^(1/3)*(1+0.8)^(1/2)/70, 
-                    "LRG2" => 150*(10)^(1/3)*(1+0.8)^(1/2)/70, 
-                    "LRG3" => 150*(10)^(1/3)*(1+0.8)^(1/2)/70, 
-                    "ELG2" => 150*2.1^(1/2)/70, 
-                    "QSO" => 150*(10)^(0.7/3)*(2.4)^(1/2)/70)
+    sigv_all = Dict("BGS" => 5.06, "LRG1" => 6.20, "LRG2" => 6.20, "LRG3" => 6.20, "ELG2" => 3.11, "QSO" => 5.68)
 
     # need to fix issue with CMB cases by changing the boundaries when necessary!!!!
     cosmo_ranges = Dict("ln10As" => [2.0, 3.5], "ns" => [0.8, 1.1], "H0" => [50, 80], "ωb" => [0.02, 0.025], "ωc" => [0.09, 0.25], "w0" => [-2, 0.5], "wa" => [-3, 1.64]) # emulator boundaries (range which minimizer is allowed to move)
