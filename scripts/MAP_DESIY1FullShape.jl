@@ -829,10 +829,16 @@ preconditioning_matrix = Diagonal([1/preconditioning_steps[label] for label in f
 MAP_param_estimates = SharedArray{Float64}(n_runs, n_fit_params)
 MAP_posterior_estimates = SharedArray{Float64}(n_runs)
 for i in 1:n_runs
-    init_guesses = [rand(Normal(init_values_ranges[label][1], init_values_ranges[label][2])) for label in fit_labels]
-    @time fit_result = maximum_a_posteriori(fit_model, LBFGS(m=50, P=preconditioning_matrix); initial_params=init_guesses)
-    MAP_posterior_estimates[i] = fit_result.lp
-    MAP_param_estimates[i, :] = fit_result.values.array
+    try
+        init_guesses = [rand(Normal(init_values_ranges[label][1], init_values_ranges[label][2])) for label in fit_labels]
+        @time fit_result = maximum_a_posteriori(fit_model, LBFGS(m=50, P=preconditioning_matrix); initial_params=init_guesses)
+        MAP_posterior_estimates[i] = fit_result.lp
+        MAP_param_estimates[i, :] = fit_result.values.array
+        println("minimization okay")
+    catch e
+        println("minimization FAILED")
+        println(e)
+    end
 end
 
 npzwrite(save_dir * "$(dataset)_$(variation)_MAP_params.npy", MAP_param_estimates)
