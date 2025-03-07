@@ -588,7 +588,7 @@ end
         D_FS_BAO_all[tracer] ~ MvNormal(prediction_FS_BAO, I)
     end
     # Adds Lya BAO as a stand alone (since uncorrelated with other tracers)
-    prediction_Lya = iΓ_Lya * theory_BAO(cosmo_params, BAO_emu, 2.33, "Lya")
+    prediction_Lya = iΓ_Lya * theory_BAO(cosmo_params_FS_BAO, BAO_emu, 2.33, "Lya")
     D_Lya ~ MvNormal(prediction_Lya, I)
     # Adds CMB contribution
     prediction_CMB = iΓ_CMB * theory_CMB(cosmo_params_CMB, CMB_emus) ./ (yₚ^2)
@@ -709,7 +709,7 @@ end
         D_FS_BAO_all[tracer] ~ MvNormal(prediction_FS_BAO, I)
     end
     # Adds Lya BAO as a stand alone (since uncorrelated with other tracers)
-    prediction_Lya = iΓ_Lya * theory_BAO(cosmo_params, BAO_emu, 2.33, "Lya")
+    prediction_Lya = iΓ_Lya * theory_BAO(cosmo_params_FS_BAO, BAO_emu, 2.33, "Lya")
     D_Lya ~ MvNormal(prediction_Lya, I)
     # Adds CMB contribution
     prediction_CMB = iΓ_CMB * theory_CMB(cosmo_params_CMB, CMB_emus) ./ (yₚ^2)
