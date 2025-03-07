@@ -157,8 +157,8 @@ eft_ranges = Dict("b1p_BGS" => [0, 3], "b1p_LRG1" => [0, 3], "b1p_LRG2" => [0, 3
                   "st0p_BGS" => [0, 2], "st0p_LRG1" => [0, 2], "st0p_LRG2" => [0, 2], "st0p_LRG3" => [0, 2], "st0p_ELG2" => [0, 2], "st0p_QSO" => [0, 2],
                   "st2p_BGS" => [0, 5], "st2p_LRG1" => [0, 5], "st2p_LRG2" => [0, 5], "st2p_LRG3" => [0, 5], "st2p_ELG2" => [0, 5], "st2p_QSO" => [0, 5])   
 # Starting guesses and preconditioning steps for each parameter in the minimization
-init_values_ranges = Dict("ln10As" => [3.044, 0.2], "ns" => [0.9649, 0.042], "H0" => [67.36, 4], "ωb" => [0.02218, 0.00055], "ωc" => [0.12, 0.01], "w0" => [-0.5, 0.5], "wa" => [-1.5, 1], "τ" => [0.0506, 0.0086], "yₚ" => [1.0, 0.0025], "Mb" => [0, 1.5],
-                          "b1p_BGS" => [1, 0.2], "b1p_LRG1" => [1, 0.2], "b1p_LRG2" => [1, 0.2], "b1p_LRG3" => [1, 0.2], "b1p_ELG2" => [1, 0.2], "b1p_QSO" => [1, 0.2],
+init_values_ranges = Dict("ln10As" => [3.044, 0.25], "ns" => [0.9649, 0.08], "H0" => [67.36, 6], "ωb" => [0.02218, 0.001], "ωc" => [0.12, 0.015], "w0" => [-0.5, 0.5], "wa" => [-1.5, 1], "τ" => [0.0506, 0.015], "yₚ" => [1.0, 0.005], "Mb" => [0, 2],
+                          "b1p_BGS" => [1, 0.4], "b1p_LRG1" => [1, 0.4], "b1p_LRG2" => [1, 0.4], "b1p_LRG3" => [1, 0.4], "b1p_ELG2" => [1, 0.4], "b1p_QSO" => [1, 0.4],
                           "b2p_BGS" => [0, 5], "b2p_LRG1" => [0, 5], "b2p_LRG2" => [0, 5], "b2p_LRG3" => [0, 5], "b2p_ELG2" => [0, 5], "b2p_QSO" => [0, 5], 
                           "bsp_BGS" => [0, 5], "bsp_LRG1" => [0, 5], "bsp_LRG2" => [0, 5], "bsp_LRG3" => [0, 5], "bsp_ELG2" => [0, 5], "bsp_QSO" => [0, 5], 
                           "alpha0p_BGS" => [0, 12.5], "alpha0p_LRG1" => [0, 12.5], "alpha0p_LRG2" => [0, 12.5], "alpha0p_LRG3" => [0, 12.5], "alpha0p_ELG2" => [0, 12.5], "alpha0p_QSO" => [0, 12.5], 

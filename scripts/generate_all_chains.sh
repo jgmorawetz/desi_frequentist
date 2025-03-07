@@ -1,29 +1,34 @@
 #!/bin/bash
-#SBATCH --job-name=MCMCchains
-#SBATCH --qos=regular
+#SBATCH --job-name=MCMCchain
+#SBATCH --qos=shared
 #SBATCH --account=desi
 #SBATCH --constraint=cpu
-#SBATCH --ntasks=16
+#SBATCH --ntasks=1
 #SBATCH --cpus-per-task=1
 #SBATCH --time=48:00:00
+#SBATCH --array=0-15
 
-module load julia
+PARAMS=(
+    "FS LCDM"
+    "FS w0waCDM"
+    "BAO LCDM"
+    "BAO w0waCDM"
+    "CMB LCDM"
+    "CMB w0waCDM"
+    "FS+BAO LCDM"
+    "FS+BAO w0waCDM"
+    "FS+BAO+CMB LCDM"
+    "FS+BAO+CMB w0waCDM"
+    "FS+BAO+CMB+DESY5SN LCDM"
+    "FS+BAO+CMB+DESY5SN w0waCDM"
+    "FS+BAO+CMB+PantheonPlusSN LCDM"
+    "FS+BAO+CMB+PantheonPlusSN w0waCDM"
+    "FS+BAO+CMB+Union3SN LCDM"
+    "FS+BAO+CMB+Union3SN w0waCDM"
+)
 
-srun -n 1 -c 1 julia MCMC_chains_DESIY1FullShape.jl --dataset="FS" --variation="LCDM" & 
-srun -n 1 -c 1 julia MCMC_chains_DESIY1FullShape.jl --dataset="FS" --variation="w0waCDM" & 
-srun -n 1 -c 1 julia MCMC_chains_DESIY1FullShape.jl --dataset="BAO" --variation="LCDM" & 
-srun -n 1 -c 1 julia MCMC_chains_DESIY1FullShape.jl --dataset="BAO" --variation="w0waCDM" & 
-srun -n 1 -c 1 julia MCMC_chains_DESIY1FullShape.jl --dataset="CMB" --variation="LCDM" & 
-srun -n 1 -c 1 julia MCMC_chains_DESIY1FullShape.jl --dataset="CMB" --variation="w0waCDM" & 
-srun -n 1 -c 1 julia MCMC_chains_DESIY1FullShape.jl --dataset="FS+BAO" --variation="LCDM" & 
-srun -n 1 -c 1 julia MCMC_chains_DESIY1FullShape.jl --dataset="FS+BAO" --variation="w0waCDM" & 
-srun -n 1 -c 1 julia MCMC_chains_DESIY1FullShape.jl --dataset="FS+BAO+CMB" --variation="LCDM" & 
-srun -n 1 -c 1 julia MCMC_chains_DESIY1FullShape.jl --dataset="FS+BAO+CMB" --variation="w0waCDM" & 
-srun -n 1 -c 1 julia MCMC_chains_DESIY1FullShape.jl --dataset="FS+BAO+CMB+DESY5SN" --variation="LCDM" & 
-srun -n 1 -c 1 julia MCMC_chains_DESIY1FullShape.jl --dataset="FS+BAO+CMB+DESY5SN" --variation="w0waCDM" & 
-srun -n 1 -c 1 julia MCMC_chains_DESIY1FullShape.jl --dataset="FS+BAO+CMB+PantheonPlusSN" --variation="LCDM" & 
-srun -n 1 -c 1 julia MCMC_chains_DESIY1FullShape.jl --dataset="FS+BAO+CMB+PantheonPlusSN" --variation="w0waCDM" & 
-srun -n 1 -c 1 julia MCMC_chains_DESIY1FullShape.jl --dataset="FS+BAO+CMB+Union3SN" --variation="LCDM" & 
-srun -n 1 -c 1 julia MCMC_chains_DESIY1FullShape.jl --dataset="FS+BAO+CMB+Union3SN" --variation="w0waCDM" & 
+PARAM_SET=(${PARAMS[$SLURM_ARRAY_TASK_ID]})
+dataset="${PARAM_SET[0]}"
+variation="${PARAM_SET[1]}"
 
-wait
+julia MCMC_chains_DESIY1FullShape.jl --dataset "$dataset" --variation "$variation"
