@@ -158,7 +158,7 @@ eft_ranges = Dict("b1p_BGS" => [0, 3], "b1p_LRG1" => [0, 3], "b1p_LRG2" => [0, 3
                   "st0p_BGS" => [0, 2], "st0p_LRG1" => [0, 2], "st0p_LRG2" => [0, 2], "st0p_LRG3" => [0, 2], "st0p_ELG2" => [0, 2], "st0p_QSO" => [0, 2],
                   "st2p_BGS" => [0, 5], "st2p_LRG1" => [0, 5], "st2p_LRG2" => [0, 5], "st2p_LRG3" => [0, 5], "st2p_ELG2" => [0, 5], "st2p_QSO" => [0, 5])   
 # Starting guesses and preconditioning steps for each parameter in the minimization
-init_values_ranges = Dict("ln10As" => [3.044, 0.25], "ns" => [0.9649, 0.08], "H0" => [67.36, 6], "ωb" => [0.02218, 0.001], "ωc" => [0.12, 0.015], "w0" => [-0.5, 0.5], "wa" => [-1.5, 1], "τ" => [0.0506, 0.015], "yₚ" => [1.0, 0.005], "Mb" => [0, 2],
+init_values_ranges = Dict("ln10As" => [3.044, 0.25], "ns" => [0.9649, 0.042], "H0" => [67.36, 6], "ωb" => [0.02218, 0.00055], "ωc" => [0.12, 0.015], "w0" => [-0.5, 0.5], "wa" => [-1.5, 0.75], "τ" => [0.0506, 0.0086], "yₚ" => [1.0, 0.0025], "Mb" => [0, 2],
                           "b1p_BGS" => [1, 0.4], "b1p_LRG1" => [1, 0.4], "b1p_LRG2" => [1, 0.4], "b1p_LRG3" => [1, 0.4], "b1p_ELG2" => [1, 0.4], "b1p_QSO" => [1, 0.4],
                           "b2p_BGS" => [0, 5], "b2p_LRG1" => [0, 5], "b2p_LRG2" => [0, 5], "b2p_LRG3" => [0, 5], "b2p_ELG2" => [0, 5], "b2p_QSO" => [0, 5], 
                           "bsp_BGS" => [0, 5], "bsp_LRG1" => [0, 5], "bsp_LRG2" => [0, 5], "bsp_LRG3" => [0, 5], "bsp_ELG2" => [0, 5], "bsp_QSO" => [0, 5], 
@@ -772,67 +772,72 @@ FS_BAO_CMB_Union3SN_model_w0waCDM = model_FS_BAO_CMB_SN(D_FS_BAO_all, D_Lya, D_C
 # Obtains the MAP values for the desired dataset and variation
 if dataset == "FS"
     if variation == "LCDM"
-        n_fit_params = 5 + 7*size(tracer_vector)[1]; fit_model = FS_model_LCDM; fit_labels = ["ln10As", "ns", "H0", "ωb", "ωc"]
+        n_fit_params = 5 + 7*size(tracer_vector)[1]; fit_model = FS_model_LCDM; cosmo_fit_labels = ["ln10As", "ns", "H0", "ωb", "ωc"]
     elseif variation == "w0waCDM"
-        n_fit_params = 7 + 7*size(tracer_vector)[1]; fit_model = FS_model_w0waCDM; fit_labels = ["ln10As", "ns", "H0", "ωb", "ωc", "w0", "wa"]
+        n_fit_params = 7 + 7*size(tracer_vector)[1]; fit_model = FS_model_w0waCDM; cosmo_fit_labels = ["ln10As", "ns", "H0", "ωb", "ωc", "w0", "wa"]
     end
 elseif dataset == "BAO"
     if variation == "LCDM"
-        n_fit_params = 3; fit_model = BAO_model_LCDM; fit_labels = ["H0", "ωb", "ωc"]
+        n_fit_params = 3; fit_model = BAO_model_LCDM; cosmo_fit_labels = ["H0", "ωb", "ωc"]
     elseif variation == "w0waCDM"
-        n_fit_params = 5; fit_model = BAO_model_w0waCDM; fit_labels = ["H0", "ωb", "ωc", "w0", "wa"]
+        n_fit_params = 5; fit_model = BAO_model_w0waCDM; cosmo_fit_labels = ["H0", "ωb", "ωc", "w0", "wa"]
     end
 elseif dataset == "CMB"
     if variation == "LCDM"
-        n_fit_params = 7; fit_model = CMB_model_LCDM; fit_labels = ["ln10As", "ns", "H0", "ωb", "ωc", "τ", "yₚ"]
+        n_fit_params = 7; fit_model = CMB_model_LCDM; cosmo_fit_labels = ["ln10As", "ns", "H0", "ωb", "ωc", "τ", "yₚ"]
     elseif variation == "w0waCDM"
-        n_fit_params = 9; fit_model = CMB_model_w0waCDM; fit_labels = ["ln10As", "ns", "H0", "ωb", "ωc", "w0", "wa", "τ", "yₚ"]
+        n_fit_params = 9; fit_model = CMB_model_w0waCDM; cosmo_fit_labels = ["ln10As", "ns", "H0", "ωb", "ωc", "w0", "wa", "τ", "yₚ"]
     end
 elseif dataset == "FS+BAO"
     if variation == "LCDM"
-        n_fit_params = 5 + 7*size(tracer_vector)[1]; fit_model = FS_BAO_model_LCDM; fit_labels = ["ln10As", "ns", "H0", "ωb", "ωc"]
+        n_fit_params = 5 + 7*size(tracer_vector)[1]; fit_model = FS_BAO_model_LCDM; cosmo_fit_labels = ["ln10As", "ns", "H0", "ωb", "ωc"]
     elseif variation == "w0waCDM"
-        n_fit_params = 7 + 7*size(tracer_vector)[1]; fit_model = FS_BAO_model_w0waCDM; fit_labels = ["ln10As", "ns", "H0", "ωb", "ωc", "w0", "wa"]
+        n_fit_params = 7 + 7*size(tracer_vector)[1]; fit_model = FS_BAO_model_w0waCDM; cosmo_fit_labels = ["ln10As", "ns", "H0", "ωb", "ωc", "w0", "wa"]
     end
 elseif dataset == "FS+BAO+CMB"
     if variation == "LCDM"
-        n_fit_params = 7 + 7*size(tracer_vector)[1]; fit_model = FS_BAO_CMB_model_LCDM; fit_labels = ["ln10As", "ns", "H0", "ωb", "ωc", "τ", "yₚ"]
+        n_fit_params = 7 + 7*size(tracer_vector)[1]; fit_model = FS_BAO_CMB_model_LCDM; cosmo_fit_labels = ["ln10As", "ns", "H0", "ωb", "ωc", "τ", "yₚ"]
     elseif variation == "w0waCDM"
-        n_fit_params = 9 + 7*size(tracer_vector)[1]; fit_model = FS_BAO_CMB_model_w0waCDM; fit_labels = ["ln10As", "ns", "H0", "ωb", "ωc", "w0", "wa", "τ", "yₚ"]
+        n_fit_params = 9 + 7*size(tracer_vector)[1]; fit_model = FS_BAO_CMB_model_w0waCDM; cosmo_fit_labels = ["ln10As", "ns", "H0", "ωb", "ωc", "w0", "wa", "τ", "yₚ"]
     end
 elseif dataset == "FS+BAO+CMB+DESY5SN"
     if variation == "LCDM"
-        n_fit_params = 8 + 7*size(tracer_vector)[1]; fit_model = FS_BAO_CMB_DESY5SN_model_LCDM; fit_labels = ["ln10As", "ns", "H0", "ωb", "ωc", "τ", "yₚ", "Mb"]
+        n_fit_params = 8 + 7*size(tracer_vector)[1]; fit_model = FS_BAO_CMB_DESY5SN_model_LCDM; cosmo_fit_labels = ["ln10As", "ns", "H0", "ωb", "ωc", "τ", "yₚ", "Mb"]
     elseif variation == "w0waCDM"
-        n_fit_params = 10 + 7*size(tracer_vector)[1]; fit_model = FS_BAO_CMB_DESY5SN_model_w0waCDM; fit_labels = ["ln10As", "ns", "H0", "ωb", "ωc", "w0", "wa", "τ", "yₚ", "Mb"]
+        n_fit_params = 10 + 7*size(tracer_vector)[1]; fit_model = FS_BAO_CMB_DESY5SN_model_w0waCDM; cosmo_fit_labels = ["ln10As", "ns", "H0", "ωb", "ωc", "w0", "wa", "τ", "yₚ", "Mb"]
     end
 elseif dataset == "FS+BAO+CMB+PantheonPlusSN"
     if variation == "LCDM"
-        n_fit_params = 8 + 7*size(tracer_vector)[1]; fit_model = FS_BAO_CMB_PantheonPlusSN_model_LCDM; fit_labels = ["ln10As", "ns", "H0", "ωb", "ωc", "τ", "yₚ", "Mb"]
+        n_fit_params = 8 + 7*size(tracer_vector)[1]; fit_model = FS_BAO_CMB_PantheonPlusSN_model_LCDM; cosmo_fit_labels = ["ln10As", "ns", "H0", "ωb", "ωc", "τ", "yₚ", "Mb"]
     elseif variation == "w0waCDM"
-        n_fit_params = 10 + 7*size(tracer_vector)[1]; fit_model = FS_BAO_CMB_PantheonPlusSN_model_w0waCDM; fit_labels = ["ln10As", "ns", "H0", "ωb", "ωc", "w0", "wa", "τ", "yₚ", "Mb"]
+        n_fit_params = 10 + 7*size(tracer_vector)[1]; fit_model = FS_BAO_CMB_PantheonPlusSN_model_w0waCDM; cosmo_fit_labels = ["ln10As", "ns", "H0", "ωb", "ωc", "w0", "wa", "τ", "yₚ", "Mb"]
     end
 elseif dataset == "FS+BAO+CMB+Union3SN"
     if variation == "LCDM"
-        n_fit_params = 8 + 7*size(tracer_vector)[1]; fit_model = FS_BAO_CMB_Union3SN_model_LCDM; fit_labels = ["ln10As", "ns", "H0", "ωb", "ωc", "τ", "yₚ", "Mb"] 
+        n_fit_params = 8 + 7*size(tracer_vector)[1]; fit_model = FS_BAO_CMB_Union3SN_model_LCDM; cosmo_fit_labels = ["ln10As", "ns", "H0", "ωb", "ωc", "τ", "yₚ", "Mb"] 
     elseif variation == "w0waCDM"
-        n_fit_params = 10 + 7*size(tracer_vector)[1]; fit_model = FS_BAO_CMB_Union3SN_model_w0waCDM; fit_labels = ["ln10As", "ns", "H0", "ωb", "ωc", "w0", "wa", "τ", "yₚ", "Mb"]
+        n_fit_params = 10 + 7*size(tracer_vector)[1]; fit_model = FS_BAO_CMB_Union3SN_model_w0waCDM; cosmo_fit_labels = ["ln10As", "ns", "H0", "ωb", "ωc", "w0", "wa", "τ", "yₚ", "Mb"]
     end   
 end
+eft_fit_labels = []
 if dataset in ["FS", "FS+BAO", "FS+BAO+CMB", "FS+BAO+CMB+DESY5SN", "FS+BAO+CMB+PantheonPlusSN", "FS+BAO+CMB+Union3SN"] # Adds EFT parameters to the label vector
     for tracer in tracer_vector
-        append!(fit_labels, ["b1p_$(tracer)", "b2p_$(tracer)", "bsp_$(tracer)", "alpha0p_$(tracer)", "alpha2p_$(tracer)", "st0p_$(tracer)", "st2p_$(tracer)"])
+        append!(eft_fit_labels, ["b1p_$(tracer)", "b2p_$(tracer)", "bsp_$(tracer)", "alpha0p_$(tracer)", "alpha2p_$(tracer)", "st0p_$(tracer)", "st2p_$(tracer)"])
     end
 end
+all_fit_labels = vcat(cosmo_fit_labels, eft_fit_labels)
 # Sets up the preconditioning matrix to help LBFGS converge better
-preconditioning_matrix = Diagonal([1/preconditioning_steps[label] for label in fit_labels])
+preconditioning_matrix = Diagonal([1/preconditioning_steps[label] for label in all_fit_labels])
 
 MAP_param_estimates = SharedArray{Float64}(n_runs, n_fit_params)
 MAP_posterior_estimates = SharedArray{Float64}(n_runs)
 for i in 1:n_runs
     try
-        init_guesses = [rand(Normal(init_values_ranges[label][1], init_values_ranges[label][2])) for label in fit_labels]
-        @time fit_result = maximum_a_posteriori(fit_model, LBFGS(m=50, P=preconditioning_matrix); initial_params=init_guesses)
+        init_guesses_cosmo = [rand(Truncated(Normal(init_values_ranges[label][1], init_values_ranges[label][2]), 
+                              cosmo_ranges[label][1], cosmo_ranges[label][2])) for label in cosmo_fit_labels]
+        init_guesses_eft = [rand(Normal(init_values_ranges[label][1], init_values_ranges[label][2])) for label in eft_fit_labels]
+        init_guesses_all = vcat(init_guesses_cosmo, init_guesses_eft)
+        @time fit_result = maximum_a_posteriori(fit_model, LBFGS(m=50, P=preconditioning_matrix); initial_params=init_guesses_all)
         MAP_posterior_estimates[i] = fit_result.lp
         MAP_param_estimates[i, :] = fit_result.values.array
         println("minimization okay")
