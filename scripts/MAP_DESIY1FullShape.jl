@@ -239,7 +239,7 @@ function theory_SN(theta_SN, Mb, z_SN)
     # theta_SN: [ln10As, ns, H0, ωb, ωc, w0, wa]
     h = theta_SN[3]/100; Ωcb = (theta_SN[4]+theta_SN[5])/h^2; w0 = theta_SN[6]; wa = theta_SN[7]
     mν_fixed = 0.06
-    z_interp = Array(LinRange(0, 2, 50)) # uses interpolation to not have to calculate for all supernovae redshifts
+    z_interp = Array(LinRange(0, 2.5, 50)) # uses interpolation to not have to calculate for all supernovae redshifts
     DL_interp = Effort._r_z.(z_interp, Ωcb, h; mν=mν_fixed, w0=w0, wa=wa)
     DL_SN = DataInterpolations.QuadraticSpline(DL_interp, z_interp).(z_SN) .* (1 .+ z_SN)
     return 5 .* log10.(DL_SN) .+ 25 .+ Mb
