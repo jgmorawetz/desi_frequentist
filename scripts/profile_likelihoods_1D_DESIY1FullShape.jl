@@ -26,8 +26,16 @@ config = ArgParseSettings()
     help="Specify profile parameter"
     arg_type=String
     required=true
-    "--param_value"
-    help="Specify the fixed value of parameter in profile likelihood"
+    "--param_lower"
+    help="Specify the lower bound of profile parameter"
+    arg_type=Float64
+    required=true
+    "--param_upper"
+    help="Specify the upper bound of profile parameter"
+    arg_type=Float64
+    required=true
+    "--n_profile"
+    help="Specify the total number of values for the profile parameter"
     arg_type=Float64
     required=true
     "--param_index"
@@ -46,10 +54,14 @@ end
 parsed_args = parse_args(config)
 n_runs = parsed_args["n_runs"]
 param_label = parsed_args["param_label"]
-param_value = parsed_args["param_value"]
+param_lower = parsed_args["param_lower"]
+param_upper = parsed_args["param_upper"]
+n_profile = parsed_args["n_profile"]
 param_index = parsed_args["param_index"]
 dataset = parsed_args["dataset"]
 variation = parsed_args["variation"]
+all_params = LinRange(param_lower, param_upper, n_profile)
+param_value = all_params[param_index]
 
 
 # Relevant folders and file paths
