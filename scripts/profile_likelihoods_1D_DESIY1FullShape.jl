@@ -36,7 +36,7 @@ config = ArgParseSettings()
     required=true
     "--n_profile"
     help="Specify the total number of values for the profile parameter"
-    arg_type=Float64
+    arg_type=Int64
     required=true
     "--param_index"
     help="Specify the index of the given fixed value of the parameter"
@@ -880,7 +880,11 @@ elseif dataset == "FS+BAO+CMB+Union3SN"
     end
 end
 # Removes the one parameter being profiled from cosmo fit labels
-cosmo_fit_labels = [cosmo_fit_label for cosmo_fit_label in cosmo_fit_labels if cosmo_fit_label != param_label]
+if param_label == "omegac"
+    cosmo_fit_labels = [cosmo_fit_label for cosmo_fit_label in cosmo_fit_labels if cosmo_fit_label != "ωc"]
+else
+    cosmo_fit_labels = [cosmo_fit_label for cosmo_fit_label in cosmo_fit_labels if cosmo_fit_label != param_label]
+end
 
 eft_fit_labels = []
 if dataset in ["FS", "FS+BAO", "FS+BAO+CMB", "FS+BAO+CMB+DESY5SN", "FS+BAO+CMB+PantheonPlusSN", "FS+BAO+CMB+Union3SN"] # Adds EFT parameters to the label vector
@@ -905,7 +909,7 @@ for i in 1:n_runs
         @time fit_result = maximum_a_posteriori(fit_model, LBFGS(m=50, P=preconditioning_matrix); initial_params=init_guesses_all)
         MLE_likelihood_estimates[i] = fit_result.lp 
         MLE_param_estimates[i, :] = fit_result.values.array 
-        println("minmization okay")
+        println("minimization okay")
     catch e
         println("minimization FAILED")
         println(e)
