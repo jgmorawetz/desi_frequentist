@@ -38,7 +38,7 @@ variation = parsed_args["variation"]
 
 
 # Relevant folders and file paths
-home_dir = "/global/homes/j/jgmorawe/FrequentistExample1/FrequentistExample1"
+home_dir = "/home/jgmorawe/FrequentistExample1"
 save_dir = home_dir * "/MAP_results_final/"
 desi_data_dir = home_dir * "/DESI_data/DESI/"
 FS_emu_dir = home_dir * "/FS_emulator/batch_trained_velocileptors_james_effort_wcdm_20000/"
@@ -147,7 +147,7 @@ fsat_all = Dict("BGS" => 0.15, "LRG1" => 0.15, "LRG2" => 0.15, "LRG3" => 0.15, "
 sigv_all = Dict("BGS" => 5.06, "LRG1" => 6.20, "LRG2" => 6.20, "LRG3" => 6.20, "ELG2" => 3.11, "QSO" => 5.68)
 
 # Emulator range for cosmological parameters (and priors for ns10 and BBN when necessary)
-cosmo_ranges = Dict("ln10As" => [2.0, 3.5], "ns" => [0.8, 1.1], "H0" => [50, 80], "ωb" => [0.02, 0.025], "ωc" => [0.09, 0.25], "w0" => [-2, 0.5], "wa" => [-3, 1.64])
+cosmo_ranges = Dict("ln10As" => [2.5, 3.5], "ns" => [0.88, 1.05], "H0" => [50, 80], "ωb" => [0.02, 0.025], "ωc" => [0.09, 0.2], "w0" => [-2, 0.5], "wa" => [-3, 1.64], "τ" => [0.02, 0.12], "yₚ" => [0.95, 1.05], "Mb_D5" => [-5, 5], "Mb_PP" => [-20, -18], "Mb_U3" => [-20, 20])
 cosmo_priors = Dict("ns" => [0.9649, 0.042], "ωb" => [0.02218, 0.00055])
 # Priors for EFT parameters for each tracer
 eft_ranges = Dict("b1p_BGS" => [0, 3], "b1p_LRG1" => [0, 3], "b1p_LRG2" => [0, 3], "b1p_LRG3" => [0, 3], "b1p_ELG2" => [0, 3], "b1p_QSO" => [0, 3],
@@ -158,7 +158,7 @@ eft_ranges = Dict("b1p_BGS" => [0, 3], "b1p_LRG1" => [0, 3], "b1p_LRG2" => [0, 3
                   "st0p_BGS" => [0, 2], "st0p_LRG1" => [0, 2], "st0p_LRG2" => [0, 2], "st0p_LRG3" => [0, 2], "st0p_ELG2" => [0, 2], "st0p_QSO" => [0, 2],
                   "st2p_BGS" => [0, 5], "st2p_LRG1" => [0, 5], "st2p_LRG2" => [0, 5], "st2p_LRG3" => [0, 5], "st2p_ELG2" => [0, 5], "st2p_QSO" => [0, 5])   
 # Starting guesses and preconditioning steps for each parameter in the minimization
-init_values_ranges = Dict("ln10As" => [3.044, 0.25], "ns" => [0.9649, 0.042], "H0" => [67.36, 6], "ωb" => [0.02218, 0.00055], "ωc" => [0.12, 0.015], "w0" => [-0.5, 0.5], "wa" => [-1.5, 0.75], "τ" => [0.0506, 0.0086], "yₚ" => [1.0, 0.0025], "Mb" => [0, 2],
+init_values_ranges = Dict("ln10As" => [3.044, 0.25], "ns" => [0.9649, 0.042], "H0" => [67.36, 6], "ωb" => [0.02218, 0.00055], "ωc" => [0.12, 0.015], "w0" => [-0.5, 0.5], "wa" => [-1.5, 0.75], "τ" => [0.0506, 0.0086], "yₚ" => [1.0, 0.0025], "Mb_D5" => [0, 2], "Mb_PP" => [-19, 0.3], "Mb_U3" => [0, 5],
                           "b1p_BGS" => [1, 0.4], "b1p_LRG1" => [1, 0.4], "b1p_LRG2" => [1, 0.4], "b1p_LRG3" => [1, 0.4], "b1p_ELG2" => [1, 0.4], "b1p_QSO" => [1, 0.4],
                           "b2p_BGS" => [0, 5], "b2p_LRG1" => [0, 5], "b2p_LRG2" => [0, 5], "b2p_LRG3" => [0, 5], "b2p_ELG2" => [0, 5], "b2p_QSO" => [0, 5], 
                           "bsp_BGS" => [0, 5], "bsp_LRG1" => [0, 5], "bsp_LRG2" => [0, 5], "bsp_LRG3" => [0, 5], "bsp_ELG2" => [0, 5], "bsp_QSO" => [0, 5], 
@@ -166,7 +166,7 @@ init_values_ranges = Dict("ln10As" => [3.044, 0.25], "ns" => [0.9649, 0.042], "H
                           "alpha2p_BGS" => [0, 12.5], "alpha2p_LRG1" => [0, 12.5], "alpha2p_LRG2" => [0, 12.5], "alpha2p_LRG3" => [0, 12.5], "alpha2p_ELG2" => [0, 12.5], "alpha2p_QSO" => [0, 12.5], 
                           "st0p_BGS" => [0, 2], "st0p_LRG1" => [0, 2], "st0p_LRG2" => [0, 2], "st0p_LRG3" => [0, 2], "st0p_ELG2" => [0, 2], "st0p_QSO" => [0, 2], 
                           "st2p_BGS" => [0, 5], "st2p_LRG1" => [0, 5], "st2p_LRG2" => [0, 5], "st2p_LRG3" => [0, 5], "st2p_ELG2" => [0, 5], "st2p_QSO" => [0, 5])
-preconditioning_steps = Dict("ln10As" => 0.2, "ns" => 0.042, "H0" => 4, "ωb" => 0.00055, "ωc" => 0.01, "w0" => 0.5, "wa" => 1, "τ" => 0.0086, "yₚ" => 0.0025, "Mb" => 1.5,
+preconditioning_steps = Dict("ln10As" => 0.2, "ns" => 0.042, "H0" => 4, "ωb" => 0.00055, "ωc" => 0.01, "w0" => 0.5, "wa" => 1, "τ" => 0.0086, "yₚ" => 0.0025, "Mb_D5" => 2, "Mb_PP" => 0.3, "Mb_U3" => 5,
                              "b1p_BGS" => 0.2, "b1p_LRG1" => 0.2, "b1p_LRG2" => 0.2, "b1p_LRG3" => 0.2, "b1p_ELG2" => 0.2, "b1p_QSO" => 0.2,
                              "b2p_BGS" => 5, "b2p_LRG1" => 5, "b2p_LRG2" => 5, "b2p_LRG3" => 5, "b2p_ELG2" => 5, "b2p_QSO" => 5, 
                              "bsp_BGS" => 5, "bsp_LRG1" => 5, "bsp_LRG2" => 5, "bsp_LRG3" => 5, "bsp_ELG2" => 5, "bsp_QSO" => 5, 
@@ -620,7 +620,7 @@ end
     D_CMB ~ MvNormal(prediction_CMB, I)
 end
 
-@model function model_FS_BAO_CMB_SN(D_FS_BAO_all, D_Lya, D_CMB, iΓ_SN, D_SN, z_SN)
+@model function model_FS_BAO_CMB_SN(D_FS_BAO_all, D_Lya, D_CMB, iΓ_SN, D_SN, z_SN, SN_type)
     # Draws cosmological parameters
     ln10As ~ Uniform(2.5, 3.5)
     ns ~ Uniform(0.88, 1.05)             
@@ -634,7 +634,13 @@ end
     mν = 0.06
     yₚ ~ Normal(1.0, 0.0025)
     # Parameters for SN contribution
-    Mb ~ Uniform(-5, 5)
+    if SN_type == "DESY5SN"
+        Mb ~ Uniform(-5, 5)
+    elseif SN_type == "PantheonPlusSN"
+        Mb ~ Uniform(-20, -18)
+    elseif SN_type == "Union3SN"
+        Mb ~ Uniform(-20, 20)
+    end
     cosmo_params_FS_BAO = [ln10As, ns, H0, ωb, ωc, w0, wa]
     cosmo_params_CMB = [ln10As, ns, H0, ωb, ωc, τ, mν, w0, wa]
     # Extracts f and sigma8 values for each tracer using BAO emulator
@@ -761,12 +767,12 @@ FS_BAO_model_w0waCDM = model_FS_BAO(D_FS_BAO_all, D_Lya)
 FS_BAO_CMB_model_LCDM = model_FS_BAO_CMB(D_FS_BAO_all, D_Lya, D_CMB) | (w0=-1, wa=0)
 FS_BAO_CMB_model_w0waCDM = model_FS_BAO_CMB(D_FS_BAO_all, D_Lya, D_CMB)
 # FS+BAO+CMB+SN models
-FS_BAO_CMB_DESY5SN_model_LCDM = model_FS_BAO_CMB_SN(D_FS_BAO_all, D_Lya, D_CMB, iΓ_DESY5SN, D_DESY5SN, z_DESY5SN) | (w0=-1, wa=0)
-FS_BAO_CMB_DESY5SN_model_w0waCDM = model_FS_BAO_CMB_SN(D_FS_BAO_all, D_Lya, D_CMB, iΓ_DESY5SN, D_DESY5SN, z_DESY5SN)
-FS_BAO_CMB_PantheonPlusSN_model_LCDM = model_FS_BAO_CMB_SN(D_FS_BAO_all, D_Lya, D_CMB, iΓ_PantheonPlusSN, D_PantheonPlusSN, z_PantheonPlusSN) | (w0=-1, wa=0)
-FS_BAO_CMB_PantheonPlusSN_model_w0waCDM = model_FS_BAO_CMB_SN(D_FS_BAO_all, D_Lya, D_CMB, iΓ_PantheonPlusSN, D_PantheonPlusSN, z_PantheonPlusSN)
-FS_BAO_CMB_Union3SN_model_LCDM = model_FS_BAO_CMB_SN(D_FS_BAO_all, D_Lya, D_CMB, iΓ_Union3SN, D_Union3SN, z_Union3SN) | (w0=-1, wa=0)
-FS_BAO_CMB_Union3SN_model_w0waCDM = model_FS_BAO_CMB_SN(D_FS_BAO_all, D_Lya, D_CMB, iΓ_Union3SN, D_Union3SN, z_Union3SN)
+FS_BAO_CMB_DESY5SN_model_LCDM = model_FS_BAO_CMB_SN(D_FS_BAO_all, D_Lya, D_CMB, iΓ_DESY5SN, D_DESY5SN, z_DESY5SN, "DESY5SN") | (w0=-1, wa=0)
+FS_BAO_CMB_DESY5SN_model_w0waCDM = model_FS_BAO_CMB_SN(D_FS_BAO_all, D_Lya, D_CMB, iΓ_DESY5SN, D_DESY5SN, z_DESY5SN, "DESY5SN")
+FS_BAO_CMB_PantheonPlusSN_model_LCDM = model_FS_BAO_CMB_SN(D_FS_BAO_all, D_Lya, D_CMB, iΓ_PantheonPlusSN, D_PantheonPlusSN, z_PantheonPlusSN, "PantheonPlusSN") | (w0=-1, wa=0)
+FS_BAO_CMB_PantheonPlusSN_model_w0waCDM = model_FS_BAO_CMB_SN(D_FS_BAO_all, D_Lya, D_CMB, iΓ_PantheonPlusSN, D_PantheonPlusSN, z_PantheonPlusSN, "PantheonPlusSN")
+FS_BAO_CMB_Union3SN_model_LCDM = model_FS_BAO_CMB_SN(D_FS_BAO_all, D_Lya, D_CMB, iΓ_Union3SN, D_Union3SN, z_Union3SN, "Union3SN") | (w0=-1, wa=0)
+FS_BAO_CMB_Union3SN_model_w0waCDM = model_FS_BAO_CMB_SN(D_FS_BAO_all, D_Lya, D_CMB, iΓ_Union3SN, D_Union3SN, z_Union3SN, "Union3SN")
 
 
 # Obtains the MAP values for the desired dataset and variation
@@ -802,21 +808,21 @@ elseif dataset == "FS+BAO+CMB"
     end
 elseif dataset == "FS+BAO+CMB+DESY5SN"
     if variation == "LCDM"
-        n_fit_params = 8 + 7*size(tracer_vector)[1]; fit_model = FS_BAO_CMB_DESY5SN_model_LCDM; cosmo_fit_labels = ["ln10As", "ns", "H0", "ωb", "ωc", "τ", "yₚ", "Mb"]
+        n_fit_params = 8 + 7*size(tracer_vector)[1]; fit_model = FS_BAO_CMB_DESY5SN_model_LCDM; cosmo_fit_labels = ["ln10As", "ns", "H0", "ωb", "ωc", "τ", "yₚ", "Mb_D5"]
     elseif variation == "w0waCDM"
-        n_fit_params = 10 + 7*size(tracer_vector)[1]; fit_model = FS_BAO_CMB_DESY5SN_model_w0waCDM; cosmo_fit_labels = ["ln10As", "ns", "H0", "ωb", "ωc", "w0", "wa", "τ", "yₚ", "Mb"]
+        n_fit_params = 10 + 7*size(tracer_vector)[1]; fit_model = FS_BAO_CMB_DESY5SN_model_w0waCDM; cosmo_fit_labels = ["ln10As", "ns", "H0", "ωb", "ωc", "w0", "wa", "τ", "yₚ", "Mb_D5"]
     end
 elseif dataset == "FS+BAO+CMB+PantheonPlusSN"
     if variation == "LCDM"
-        n_fit_params = 8 + 7*size(tracer_vector)[1]; fit_model = FS_BAO_CMB_PantheonPlusSN_model_LCDM; cosmo_fit_labels = ["ln10As", "ns", "H0", "ωb", "ωc", "τ", "yₚ", "Mb"]
+        n_fit_params = 8 + 7*size(tracer_vector)[1]; fit_model = FS_BAO_CMB_PantheonPlusSN_model_LCDM; cosmo_fit_labels = ["ln10As", "ns", "H0", "ωb", "ωc", "τ", "yₚ", "Mb_PP"]
     elseif variation == "w0waCDM"
-        n_fit_params = 10 + 7*size(tracer_vector)[1]; fit_model = FS_BAO_CMB_PantheonPlusSN_model_w0waCDM; cosmo_fit_labels = ["ln10As", "ns", "H0", "ωb", "ωc", "w0", "wa", "τ", "yₚ", "Mb"]
+        n_fit_params = 10 + 7*size(tracer_vector)[1]; fit_model = FS_BAO_CMB_PantheonPlusSN_model_w0waCDM; cosmo_fit_labels = ["ln10As", "ns", "H0", "ωb", "ωc", "w0", "wa", "τ", "yₚ", "Mb_PP"]
     end
 elseif dataset == "FS+BAO+CMB+Union3SN"
     if variation == "LCDM"
-        n_fit_params = 8 + 7*size(tracer_vector)[1]; fit_model = FS_BAO_CMB_Union3SN_model_LCDM; cosmo_fit_labels = ["ln10As", "ns", "H0", "ωb", "ωc", "τ", "yₚ", "Mb"] 
+        n_fit_params = 8 + 7*size(tracer_vector)[1]; fit_model = FS_BAO_CMB_Union3SN_model_LCDM; cosmo_fit_labels = ["ln10As", "ns", "H0", "ωb", "ωc", "τ", "yₚ", "Mb_U3"] 
     elseif variation == "w0waCDM"
-        n_fit_params = 10 + 7*size(tracer_vector)[1]; fit_model = FS_BAO_CMB_Union3SN_model_w0waCDM; cosmo_fit_labels = ["ln10As", "ns", "H0", "ωb", "ωc", "w0", "wa", "τ", "yₚ", "Mb"]
+        n_fit_params = 10 + 7*size(tracer_vector)[1]; fit_model = FS_BAO_CMB_Union3SN_model_w0waCDM; cosmo_fit_labels = ["ln10As", "ns", "H0", "ωb", "ωc", "w0", "wa", "τ", "yₚ", "Mb_U3"]
     end   
 end
 eft_fit_labels = []

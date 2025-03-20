@@ -31,7 +31,7 @@ variation = parsed_args["variation"]
 
 
 # Relevant folders and file paths
-home_dir = "/global/homes/j/jgmorawe/FrequentistExample1/FrequentistExample1"
+home_dir = "/home/jgmorawe/FrequentistExample1"
 save_dir = home_dir * "/MCMC_results_final/"
 desi_data_dir = home_dir * "/DESI_data/DESI/"
 FS_emu_dir = home_dir * "/FS_emulator/batch_trained_velocileptors_james_effort_wcdm_20000/"
@@ -596,7 +596,7 @@ end
     D_CMB ~ MvNormal(prediction_CMB, I)
 end
 
-@model function model_FS_BAO_CMB_SN(D_FS_BAO_all, D_Lya, D_CMB, iΓ_SN, D_SN, z_SN)
+@model function model_FS_BAO_CMB_SN(D_FS_BAO_all, D_Lya, D_CMB, iΓ_SN, D_SN, z_SN, SN_type)
     # Draws cosmological parameters
     ln10As ~ Uniform(2.5, 3.5)
     ns ~ Uniform(0.88, 1.05)             
@@ -610,7 +610,13 @@ end
     mν = 0.06
     yₚ ~ Normal(1.0, 0.0025)
     # Parameters for SN contribution
-    Mb ~ Uniform(-5, 5)
+    if SN_type == "DESY5SN"
+        Mb ~ Uniform(-5, 5)
+    elseif SN_type == "PantheonPlusSN"
+        Mb ~ Uniform(-20, -18)
+    elseif SN_type == "Union3SN"
+        Mb ~ Uniform(-20, 20)
+    end
     cosmo_params_FS_BAO = [ln10As, ns, H0, ωb, ωc, w0, wa]
     cosmo_params_CMB = [ln10As, ns, H0, ωb, ωc, τ, mν, w0, wa]
     # Extracts f and sigma8 values for each tracer using BAO emulator
@@ -737,12 +743,12 @@ FS_BAO_model_w0waCDM = model_FS_BAO(D_FS_BAO_all, D_Lya)
 FS_BAO_CMB_model_LCDM = model_FS_BAO_CMB(D_FS_BAO_all, D_Lya, D_CMB) | (w0=-1, wa=0)
 FS_BAO_CMB_model_w0waCDM = model_FS_BAO_CMB(D_FS_BAO_all, D_Lya, D_CMB)
 # FS+BAO+CMB+SN models
-FS_BAO_CMB_DESY5SN_model_LCDM = model_FS_BAO_CMB_SN(D_FS_BAO_all, D_Lya, D_CMB, iΓ_DESY5SN, D_DESY5SN, z_DESY5SN) | (w0=-1, wa=0)
-FS_BAO_CMB_DESY5SN_model_w0waCDM = model_FS_BAO_CMB_SN(D_FS_BAO_all, D_Lya, D_CMB, iΓ_DESY5SN, D_DESY5SN, z_DESY5SN)
-FS_BAO_CMB_PantheonPlusSN_model_LCDM = model_FS_BAO_CMB_SN(D_FS_BAO_all, D_Lya, D_CMB, iΓ_PantheonPlusSN, D_PantheonPlusSN, z_PantheonPlusSN) | (w0=-1, wa=0)
-FS_BAO_CMB_PantheonPlusSN_model_w0waCDM = model_FS_BAO_CMB_SN(D_FS_BAO_all, D_Lya, D_CMB, iΓ_PantheonPlusSN, D_PantheonPlusSN, z_PantheonPlusSN)
-FS_BAO_CMB_Union3SN_model_LCDM = model_FS_BAO_CMB_SN(D_FS_BAO_all, D_Lya, D_CMB, iΓ_Union3SN, D_Union3SN, z_Union3SN) | (w0=-1, wa=0)
-FS_BAO_CMB_Union3SN_model_w0waCDM = model_FS_BAO_CMB_SN(D_FS_BAO_all, D_Lya, D_CMB, iΓ_Union3SN, D_Union3SN, z_Union3SN)
+FS_BAO_CMB_DESY5SN_model_LCDM = model_FS_BAO_CMB_SN(D_FS_BAO_all, D_Lya, D_CMB, iΓ_DESY5SN, D_DESY5SN, z_DESY5SN, "DESY5SN") | (w0=-1, wa=0)
+FS_BAO_CMB_DESY5SN_model_w0waCDM = model_FS_BAO_CMB_SN(D_FS_BAO_all, D_Lya, D_CMB, iΓ_DESY5SN, D_DESY5SN, z_DESY5SN, "DESY5SN")
+FS_BAO_CMB_PantheonPlusSN_model_LCDM = model_FS_BAO_CMB_SN(D_FS_BAO_all, D_Lya, D_CMB, iΓ_PantheonPlusSN, D_PantheonPlusSN, z_PantheonPlusSN, "PantheonPlusSN") | (w0=-1, wa=0)
+FS_BAO_CMB_PantheonPlusSN_model_w0waCDM = model_FS_BAO_CMB_SN(D_FS_BAO_all, D_Lya, D_CMB, iΓ_PantheonPlusSN, D_PantheonPlusSN, z_PantheonPlusSN, "PantheonPlusSN")
+FS_BAO_CMB_Union3SN_model_LCDM = model_FS_BAO_CMB_SN(D_FS_BAO_all, D_Lya, D_CMB, iΓ_Union3SN, D_Union3SN, z_Union3SN, "Union3SN") | (w0=-1, wa=0)
+FS_BAO_CMB_Union3SN_model_w0waCDM = model_FS_BAO_CMB_SN(D_FS_BAO_all, D_Lya, D_CMB, iΓ_Union3SN, D_Union3SN, z_Union3SN, "Union3SN")
 
 
 n_burn = 1000
@@ -800,4 +806,4 @@ elseif dataset == "FS+BAO+CMB+Union3SN"
 end
  
 chain_array = Array(chain)
-npzwrite(save_dir * "$(dataset)_$(variation)_chain.npy", chain_array)
+npzwrite(save_dir * "$(dataset)_$(variation)_chain_debugging_problem.npy", chain_array)#####################
