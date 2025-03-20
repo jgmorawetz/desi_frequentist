@@ -210,7 +210,7 @@ function theory_CMB(theta_CMB, emu_CMB_components)
                              Capse.get_Cℓ(theta_CMB, emu_EE)[1:1995]./facTE)
 end
 
-function theory_SN(theta_SN, Mb, z_SN)
+function theory_SN(theta_SN, Mb, z_SN, SN_type)
     """Constructs theory vector for supernovae."""
     # theta_SN: [ln10As, ns, H0, ωb, ωc, w0, wa]
     h = theta_SN[3]/100; Ωcb = (theta_SN[4]+theta_SN[5])/h^2; w0 = theta_SN[6]; wa = theta_SN[7]
@@ -218,7 +218,13 @@ function theory_SN(theta_SN, Mb, z_SN)
     z_interp = Array(LinRange(0, 2.5, 50)) # uses interpolation to not have to calculate for all supernovae redshifts
     DL_interp = Effort._r_z.(z_interp, Ωcb, h; mν=mν_fixed, w0=w0, wa=wa)
     DL_SN = DataInterpolations.QuadraticSpline(DL_interp, z_interp).(z_SN) .* (1 .+ z_SN)
-    return 5 .* log10.(DL_SN) .+ 25 .+ Mb
+    if SN_type == "DESY5SN"
+        return 5 .* log10.(DL_SN) .+ 25 .+ Mb
+    elseif SN_type == "PantheonPlusSN"
+        return 5 .* log10.(DL_SN) .+ 25 .+ Mb
+    elseif SN_type == "Union3SN"
+        return 5 .* log10.(100 .* DL_SN .* h) .+ 25 .+ Mb
+    end
 end
 
 @model function model_FS(D_FS_all)
@@ -326,44 +332,6 @@ end
         prediction_FS = iΓ_FS_all[tracer]*(wmat_all[tracer]*theory_FS(cosmo_eft_params, FS_emus[tracer], kin_all[tracer]))
         D_FS_all[tracer] ~ MvNormal(prediction_FS, I)
     end
-end
-
-@model function model_BAO(D_BAO_all, D_Lya)
-    # Draws cosmological parameters
-    ln10As ~ Uniform(cosmo_ranges["ln10As"][1], cosmo_ranges["ln10As"][2])
-    ns ~ Truncated(Normal(cosmo_priors["ns"][1], cosmo_priors["ns"][2]), cosmo_ranges["ns"][1], cosmo_ranges["ns"][2])               
-    H0 ~ Uniform(cosmo_ranges["H0"][1], cosmo_ranges["H0"][2])
-    ωb ~ Truncated(Normal(cosmo_priors["ωb"][1], cosmo_priors["ωb"][2]), cosmo_ranges["ωb"][1], cosmo_ranges["ωb"][2])            
-    ωc ~ Uniform(cosmo_ranges["ωc"][1], cosmo_ranges["ωc"][2])
-    w0 ~ Uniform(cosmo_ranges["w0"][1], cosmo_ranges["w0"][2])
-    wa ~ Uniform(cosmo_ranges["wa"][1], cosmo_ranges["wa"][2])
-    cosmo_params = [ln10As, ns, H0, ωb, ωc, w0, wa]
-    # Iterates through each tracer
-    for tracer in tracer_vector
-        prediction_BAO = iΓ_BAO_all[tracer]*theory_BAO(cosmo_params, BAO_emu, zeff_all[tracer], tracer)
-        D_BAO_all[tracer] ~ MvNormal(prediction_BAO, I)
-    end
-    # Adds Lya BAO as a stand alone (since uncorrelated with other tracers)
-    prediction_Lya = iΓ_Lya * theory_BAO(cosmo_params, BAO_emu, 2.33, "Lya")
-    D_Lya ~ MvNormal(prediction_Lya, I)
-end
-
-@model function model_CMB(D_CMB)
-    # Draws cosmological parameters
-    ln10As ~ Uniform(2.5, 3.5)
-    ns ~ Uniform(0.88, 1.05)             
-    H0 ~ Uniform(cosmo_ranges["H0"][1], cosmo_ranges["H0"][2])
-    ωb ~ Uniform(cosmo_ranges["ωb"][1], cosmo_ranges["ωb"][2])           
-    ωc ~ Uniform(0.09, 0.2)
-    w0 ~ Uniform(cosmo_ranges["w0"][1], cosmo_ranges["w0"][2])
-    wa ~ Uniform(cosmo_ranges["wa"][1], cosmo_ranges["wa"][2])
-    # Parameters for CMB contribution
-    τ ~ Normal(0.0506, 0.0086)
-    mν = 0.06
-    yₚ ~ Normal(1.0, 0.0025)
-    cosmo_params_CMB = [ln10As, ns, H0, ωb, ωc, τ, mν, w0, wa]
-    prediction_CMB = iΓ_CMB * theory_CMB(cosmo_params_CMB, CMB_emus) ./ (yₚ^2)
-    D_CMB ~ MvNormal(prediction_CMB, I)
 end
 
 @model function model_FS_BAO(D_FS_BAO_all, D_Lya)
@@ -722,7 +690,7 @@ end
     prediction_CMB = iΓ_CMB * theory_CMB(cosmo_params_CMB, CMB_emus) ./ (yₚ^2)
     D_CMB ~ MvNormal(prediction_CMB, I)
     # Adds SN contribution
-    prediction_SN = iΓ_SN * theory_SN(cosmo_params_FS_BAO, Mb, z_SN)
+    prediction_SN = iΓ_SN * theory_SN(cosmo_params_FS_BAO, Mb, z_SN, SN_type)
     D_SN ~ MvNormal(prediction_SN, I)
 end
 
@@ -730,12 +698,6 @@ end
 # FS models
 FS_model_LCDM = model_FS(D_FS_all) | (w0=-1, wa=0)
 FS_model_w0waCDM = model_FS(D_FS_all)
-# BAO models
-BAO_model_LCDM = model_BAO(D_BAO_all, D_Lya) | (ln10As=3.044, ns=0.9649, w0=-1, wa=0)
-BAO_model_w0waCDM = model_BAO(D_BAO_all, D_Lya) | (ln10As=3.044, ns=0.9649)
-# CMB models
-CMB_model_LCDM = model_CMB(D_CMB) | (w0=-1, wa=0)
-CMB_model_w0waCDM = model_CMB(D_CMB)
 # FS+BAO models
 FS_BAO_model_LCDM = model_FS_BAO(D_FS_BAO_all, D_Lya) | (w0=-1, wa=0)
 FS_BAO_model_w0waCDM = model_FS_BAO(D_FS_BAO_all, D_Lya)
@@ -760,18 +722,6 @@ if dataset == "FS"
         chain = sample(FS_model_LCDM, NUTS(n_burn, acceptance), n_steps)
     elseif variation == "w0waCDM"
         chain = sample(FS_model_w0waCDM, NUTS(n_burn, acceptance), n_steps)
-    end
-elseif dataset == "BAO"
-    if variation == "LCDM"
-        chain = sample(BAO_model_LCDM, NUTS(n_burn, acceptance), n_steps)
-    elseif variation == "w0waCDM"
-        chain = sample(BAO_model_w0waCDM, NUTS(n_burn, acceptance), n_steps)
-    end
-elseif dataset == "CMB"
-    if variation == "LCDM"
-        chain = sample(CMB_model_LCDM, NUTS(n_burn, acceptance), n_steps)
-    elseif variation == "w0waCDM"
-        chain = sample(CMB_model_w0waCDM, NUTS(n_burn, acceptance), n_steps)
     end
 elseif dataset == "FS+BAO"
     if variation == "LCDM"
@@ -804,6 +754,6 @@ elseif dataset == "FS+BAO+CMB+Union3SN"
         chain = sample(FS_BAO_CMB_Union3SN_model_w0waCDM, NUTS(n_burn, acceptance), n_steps)
     end   
 end
- 
+
 chain_array = Array(chain)
-npzwrite(save_dir * "$(dataset)_$(variation)_chain_debugging_problem.npy", chain_array)#####################
+npzwrite(save_dir * "$(dataset)_$(variation)_chain.npy", chain_array)
