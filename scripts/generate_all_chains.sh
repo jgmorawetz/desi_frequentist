@@ -1,20 +1,16 @@
 #!/bin/bash
 #SBATCH --job-name=MCMCchain
-#SBATCH --qos=shared
-#SBATCH --account=desi
-#SBATCH --constraint=cpu
+#SBATCH --account=rrg-wperciva
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=1
-#SBATCH --time=48:00:00
-#SBATCH --array=0-15
+#SBATCH --mem-per-cpu=30G
+#SBATCH --time=96:00:00
+#SBATCH --array=0-11
+
 
 PARAMS=(
     "FS LCDM"
     "FS w0waCDM"
-    "BAO LCDM"
-    "BAO w0waCDM"
-    "CMB LCDM"
-    "CMB w0waCDM"
     "FS+BAO LCDM"
     "FS+BAO w0waCDM"
     "FS+BAO+CMB LCDM"
