@@ -16,6 +16,22 @@ using DataInterpolations
 # Specifies the dataset (e.g. "FS+BAO+CMB+DESY5SN") and cosmological model ("w0waCDM")
 config = ArgParseSettings()
 @add_arg_table config begin
+    "--n_steps"
+    help="Specify number of accepted steps (discarding burn in)"
+    arg_type=Int64
+    required=true
+    "--n_burn"
+    help="Specify the number of burn in steps"
+    arg_type=Int64
+    required=true
+    "--acceptance"
+    help="Specify the acceptance fraction"
+    arg_type=Float64
+    required=true
+    "--chain_index"
+    help="Specify the chain index (in case multiple chains are to be combined together)"
+    arg_type=Int64
+    required=true
     "--dataset"
     help="Specify dataset"
     arg_type=String
@@ -26,16 +42,20 @@ config = ArgParseSettings()
     required=true
 end
 parsed_args = parse_args(config)
+n_steps = parsed_args["n_steps"]
+n_burn = parsed_args["n_burn"]
+acceptance = parsed_args["acceptance"]
+chain_index = parsed_args["chain_index"]
 dataset = parsed_args["dataset"]
 variation = parsed_args["variation"]
 
 
 # Relevant folders and file paths
-home_dir = "/home/jgmorawe/FrequentistExample1"
-save_dir = home_dir * "/MCMC_results_final/"
+home_dir = "/global/homes/j/jgmorawe/FrequentistExample1/FrequentistExample1"
+save_dir = home_dir * "/MCMC_results_paper/"
 desi_data_dir = home_dir * "/DESI_data/DESI/"
 FS_emu_dir = home_dir * "/FS_emulator/batch_trained_velocileptors_james_effort_wcdm_20000/"
-BAO_emu_dir = home_dir * "/BAO_emulator/"
+BAO_emu_dir = home_dir * "/BAO_emulator_ln10As_version/"
 CMB_emu_dir = home_dir * "/CMB_emulator/"
 # Tracers to use for chains
 tracer_list = "BGS,LRG1,LRG2,LRG3,ELG2,QSO"
@@ -140,7 +160,8 @@ fsat_all = Dict("BGS" => 0.15, "LRG1" => 0.15, "LRG2" => 0.15, "LRG3" => 0.15, "
 sigv_all = Dict("BGS" => 5.06, "LRG1" => 6.20, "LRG2" => 6.20, "LRG3" => 6.20, "ELG2" => 3.11, "QSO" => 5.68)
 
 # Emulator range for cosmological parameters (and priors for ns10 and BBN when necessary)
-cosmo_ranges = Dict("ln10As" => [2.0, 3.5], "ns" => [0.8, 1.1], "H0" => [50, 80], "ωb" => [0.02, 0.025], "ωc" => [0.09, 0.25], "w0" => [-2, 0.5], "wa" => [-3, 1.64])
+cosmo_ranges_FS_BAO = Dict("ln10As" => [2.0, 3.5], "ns" => [0.8, 1.1], "H0" => [50, 80], "ωb" => [0.02, 0.025], "ωc" => [0.09, 0.25], "w0" => [-2, 0.5], "wa" => [-3, 1.64])
+cosmo_ranges_CMB = Dict("ln10As" => [2.5, 3.5], "ns" => [0.88, 1.05], "H0" => [50, 80], "ωb" => [0.02, 0.025], "ωc" => [0.09, 0.2], "w0" => [-2, 0.5], "wa" => [-3, 1.64])
 cosmo_priors = Dict("ns" => [0.9649, 0.042], "ωb" => [0.02218, 0.00055])
 # Priors for EFT parameters for each tracer
 eft_ranges = Dict("b1p_BGS" => [0, 3], "b1p_LRG1" => [0, 3], "b1p_LRG2" => [0, 3], "b1p_LRG3" => [0, 3], "b1p_ELG2" => [0, 3], "b1p_QSO" => [0, 3],
@@ -229,13 +250,13 @@ end
 
 @model function model_FS(D_FS_all)
     # Draws cosmological parameters
-    ln10As ~ Uniform(cosmo_ranges["ln10As"][1], cosmo_ranges["ln10As"][2])
-    ns ~ Truncated(Normal(cosmo_priors["ns"][1], cosmo_priors["ns"][2]), cosmo_ranges["ns"][1], cosmo_ranges["ns"][2])               
-    H0 ~ Uniform(cosmo_ranges["H0"][1], cosmo_ranges["H0"][2])
-    ωb ~ Truncated(Normal(cosmo_priors["ωb"][1], cosmo_priors["ωb"][2]), cosmo_ranges["ωb"][1], cosmo_ranges["ωb"][2])            
-    ωc ~ Uniform(cosmo_ranges["ωc"][1], cosmo_ranges["ωc"][2])
-    w0 ~ Uniform(cosmo_ranges["w0"][1], cosmo_ranges["w0"][2])
-    wa ~ Uniform(cosmo_ranges["wa"][1], cosmo_ranges["wa"][2])
+    ln10As ~ Uniform(cosmo_ranges_FS_BAO["ln10As"][1], cosmo_ranges_FS_BAO["ln10As"][2])
+    ns ~ Truncated(Normal(cosmo_priors["ns"][1], cosmo_priors["ns"][2]), cosmo_ranges_FS_BAO["ns"][1], cosmo_ranges_FS_BAO["ns"][2])               
+    H0 ~ Uniform(cosmo_ranges_FS_BAO["H0"][1], cosmo_ranges_FS_BAO["H0"][2])
+    ωb ~ Truncated(Normal(cosmo_priors["ωb"][1], cosmo_priors["ωb"][2]), cosmo_ranges_FS_BAO["ωb"][1], cosmo_ranges_FS_BAO["ωb"][2])            
+    ωc ~ Uniform(cosmo_ranges_FS_BAO["ωc"][1], cosmo_ranges_FS_BAO["ωc"][2])
+    w0 ~ Uniform(cosmo_ranges_FS_BAO["w0"][1], cosmo_ranges_FS_BAO["w0"][2])
+    wa ~ Uniform(cosmo_ranges_FS_BAO["wa"][1], cosmo_ranges_FS_BAO["wa"][2])
     cosmo_params = [ln10As, ns, H0, ωb, ωc, w0, wa]
     # Extracts f and sigma8 values for each tracer using BAO emulator
     fsigma8_info = Effort.get_BAO(cosmo_params, BAO_emu)
@@ -336,13 +357,13 @@ end
 
 @model function model_FS_BAO(D_FS_BAO_all, D_Lya)
     # Draws cosmological parameters
-    ln10As ~ Uniform(cosmo_ranges["ln10As"][1], cosmo_ranges["ln10As"][2])
-    ns ~ Truncated(Normal(cosmo_priors["ns"][1], cosmo_priors["ns"][2]), cosmo_ranges["ns"][1], cosmo_ranges["ns"][2])               
-    H0 ~ Uniform(cosmo_ranges["H0"][1], cosmo_ranges["H0"][2])
-    ωb ~ Truncated(Normal(cosmo_priors["ωb"][1], cosmo_priors["ωb"][2]), cosmo_ranges["ωb"][1], cosmo_ranges["ωb"][2])            
-    ωc ~ Uniform(cosmo_ranges["ωc"][1], cosmo_ranges["ωc"][2])
-    w0 ~ Uniform(cosmo_ranges["w0"][1], cosmo_ranges["w0"][2])
-    wa ~ Uniform(cosmo_ranges["wa"][1], cosmo_ranges["wa"][2])
+    ln10As ~ Uniform(cosmo_ranges_FS_BAO["ln10As"][1], cosmo_ranges_FS_BAO["ln10As"][2])
+    ns ~ Truncated(Normal(cosmo_priors["ns"][1], cosmo_priors["ns"][2]), cosmo_ranges_FS_BAO["ns"][1], cosmo_ranges_FS_BAO["ns"][2])               
+    H0 ~ Uniform(cosmo_ranges_FS_BAO["H0"][1], cosmo_ranges_FS_BAO["H0"][2])
+    ωb ~ Truncated(Normal(cosmo_priors["ωb"][1], cosmo_priors["ωb"][2]), cosmo_ranges_FS_BAO["ωb"][1], cosmo_ranges_FS_BAO["ωb"][2])            
+    ωc ~ Uniform(cosmo_ranges_FS_BAO["ωc"][1], cosmo_ranges_FS_BAO["ωc"][2])
+    w0 ~ Uniform(cosmo_ranges_FS_BAO["w0"][1], cosmo_ranges_FS_BAO["w0"][2])
+    wa ~ Uniform(cosmo_ranges_FS_BAO["wa"][1], cosmo_ranges_FS_BAO["wa"][2])
     cosmo_params = [ln10As, ns, H0, ωb, ωc, w0, wa]
     # Extracts f and sigma8 values for each tracer using BAO emulator
     fsigma8_info = Effort.get_BAO(cosmo_params, BAO_emu)
@@ -447,13 +468,13 @@ end
 
 @model function model_FS_BAO_CMB(D_FS_BAO_all, D_Lya, D_CMB)
     # Draws cosmological parameters
-    ln10As ~ Uniform(2.5, 3.5)
-    ns ~ Uniform(0.88, 1.05)             
-    H0 ~ Uniform(cosmo_ranges["H0"][1], cosmo_ranges["H0"][2])
-    ωb ~ Uniform(cosmo_ranges["ωb"][1], cosmo_ranges["ωb"][2])           
-    ωc ~ Uniform(0.09, 0.2)
-    w0 ~ Uniform(cosmo_ranges["w0"][1], cosmo_ranges["w0"][2])
-    wa ~ Uniform(cosmo_ranges["wa"][1], cosmo_ranges["wa"][2])
+    ln10As ~ Uniform(cosmo_ranges_CMB["ln10As"][1], cosmo_ranges_CMB["ln10As"][2])
+    ns ~ Uniform(cosmo_ranges_CMB["ns"][1], cosmo_ranges_CMB["ns"][2])         
+    H0 ~ Uniform(cosmo_ranges_CMB["H0"][1], cosmo_ranges_CMB["H0"][2])
+    ωb ~ Uniform(cosmo_ranges_CMB["ωb"][1], cosmo_ranges_CMB["ωb"][2])           
+    ωc ~ Uniform(cosmo_ranges_CMB["ωc"][1], cosmo_ranges_CMB["ωc"][2])
+    w0 ~ Uniform(cosmo_ranges_CMB["w0"][1], cosmo_ranges_CMB["w0"][2])
+    wa ~ Uniform(cosmo_ranges_CMB["wa"][1], cosmo_ranges_CMB["wa"][2])
     # Parameters for CMB contribution
     τ ~ Normal(0.0506, 0.0086)
     mν = 0.06
@@ -566,13 +587,13 @@ end
 
 @model function model_FS_BAO_CMB_SN(D_FS_BAO_all, D_Lya, D_CMB, iΓ_SN, D_SN, z_SN, SN_type)
     # Draws cosmological parameters
-    ln10As ~ Uniform(2.5, 3.5)
-    ns ~ Uniform(0.88, 1.05)             
-    H0 ~ Uniform(cosmo_ranges["H0"][1], cosmo_ranges["H0"][2])
-    ωb ~ Uniform(cosmo_ranges["ωb"][1], cosmo_ranges["ωb"][2])           
-    ωc ~ Uniform(0.09, 0.2)
-    w0 ~ Uniform(cosmo_ranges["w0"][1], cosmo_ranges["w0"][2])
-    wa ~ Uniform(cosmo_ranges["wa"][1], cosmo_ranges["wa"][2])
+    ln10As ~ Uniform(cosmo_ranges_CMB["ln10As"][1], cosmo_ranges_CMB["ln10As"][2])
+    ns ~ Uniform(cosmo_ranges_CMB["ns"][1], cosmo_ranges_CMB["ns"][2])         
+    H0 ~ Uniform(cosmo_ranges_CMB["H0"][1], cosmo_ranges_CMB["H0"][2])
+    ωb ~ Uniform(cosmo_ranges_CMB["ωb"][1], cosmo_ranges_CMB["ωb"][2])           
+    ωc ~ Uniform(cosmo_ranges_CMB["ωc"][1], cosmo_ranges_CMB["ωc"][2])
+    w0 ~ Uniform(cosmo_ranges_CMB["w0"][1], cosmo_ranges_CMB["w0"][2])
+    wa ~ Uniform(cosmo_ranges_CMB["wa"][1], cosmo_ranges_CMB["wa"][2])
     # Parameters for CMB contribution
     τ ~ Normal(0.0506, 0.0086)
     mν = 0.06
@@ -713,10 +734,6 @@ FS_BAO_CMB_Union3SN_model_LCDM = model_FS_BAO_CMB_SN(D_FS_BAO_all, D_Lya, D_CMB,
 FS_BAO_CMB_Union3SN_model_w0waCDM = model_FS_BAO_CMB_SN(D_FS_BAO_all, D_Lya, D_CMB, iΓ_Union3SN, D_Union3SN, z_Union3SN, "Union3SN")
 
 
-n_burn = 1000
-acceptance = 0.65
-n_steps = 10000
-
 if dataset == "FS"
     if variation == "LCDM"
         chain = sample(FS_model_LCDM, NUTS(n_burn, acceptance), n_steps)
@@ -756,4 +773,4 @@ elseif dataset == "FS+BAO+CMB+Union3SN"
 end
 
 chain_array = Array(chain)
-npzwrite(save_dir * "$(dataset)_$(variation)_chain.npy", chain_array)
+npzwrite(save_dir * "$(dataset)_$(variation)_$(n_steps)_$(n_burn)_$(acceptance)_$(chain_index)_chain.npy", chain_array)
