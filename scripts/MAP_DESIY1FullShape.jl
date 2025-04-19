@@ -10,12 +10,14 @@ using Capse
 using Turing
 using Optim
 using LinearAlgebra
+using Statistics
 using NPZ
+using DelimitedFiles
 using SharedArrays
 using DataInterpolations
 
 
-# Specifies the dataset (e.g. "FS+BAO+CMB+DESY5SN") and cosmological model ("w0waCDM")
+# Specifies the dataset (e.g. "FS+BAO+CMB+DESY5SN") and cosmological model (e.g. "w0waCDM")
 config = ArgParseSettings()
 @add_arg_table config begin
     "--n_runs"
@@ -30,19 +32,24 @@ config = ArgParseSettings()
     help="Specify variation"
     arg_type=String
     required=true
+    "--chains_path"
+    help="Specify the path to the file containing the MCMC chains (for preconditioning/initial guess purposes)"
+    arg_type=String
+    required=true
 end
 parsed_args = parse_args(config)
 n_runs = parsed_args["n_runs"]
 dataset = parsed_args["dataset"]
 variation = parsed_args["variation"]
+chains_path = parsed_args["chains_path"]
 
 
 # Relevant folders and file paths
-home_dir = "/home/jgmorawe/FrequentistExample1"
-save_dir = home_dir * "/MAP_results_final/"
+home_dir = "/global/homes/j/jgmorawe/FrequentistExample1/FrequentistExample1/"
+save_dir = home_dir * "/MAP_results_paper/"
 desi_data_dir = home_dir * "/DESI_data/DESI/"
 FS_emu_dir = home_dir * "/FS_emulator/batch_trained_velocileptors_james_effort_wcdm_20000/"
-BAO_emu_dir = home_dir * "/BAO_emulator/"
+BAO_emu_dir = home_dir * "/BAO_emulator_ln10As_version/"
 CMB_emu_dir = home_dir * "/CMB_emulator/"
 # Tracers to use for chains
 tracer_list = "BGS,LRG1,LRG2,LRG3,ELG2,QSO"
@@ -147,8 +154,9 @@ fsat_all = Dict("BGS" => 0.15, "LRG1" => 0.15, "LRG2" => 0.15, "LRG3" => 0.15, "
 sigv_all = Dict("BGS" => 5.06, "LRG1" => 6.20, "LRG2" => 6.20, "LRG3" => 6.20, "ELG2" => 3.11, "QSO" => 5.68)
 
 # Emulator range for cosmological parameters (and priors for ns10 and BBN when necessary)
-cosmo_ranges = Dict("ln10As" => [2.0, 3.5], "ns" => [0.8, 1.1], "H0" => [50, 80], "ωb" => [0.02, 0.025], "ωc" => [0.09, 0.25], "w0" => [-2, 0.5], "wa" => [-3, 1.64], "τ" => [0.02, 0.12], "yₚ" => [0.95, 1.05], "Mb_D5" => [-5, 5], "Mb_PP" => [-20, -18], "Mb_U3" => [-20, 20])
-cosmo_ranges_CMB = Dict("ln10As" => [2.5, 3.5], "ns" => [0.88, 1.05], "H0" => [50, 80], "ωb" => [0.02, 0.025], "ωc" => [0.09, 0.2], "w0" => [-2, 0.5], "wa" => [-3, 1.64], "τ" => [0.02, 0.12], "yₚ" => [0.95, 1.05], "Mb_D5" => [-5, 5], "Mb_PP" => [-20, -18], "Mb_U3" => [-20, 20])
+cosmo_ranges_FS_BAO = Dict("ln10As" => [2.0, 3.5], "ns" => [0.8, 1.1], "H0" => [50, 80], "ωb" => [0.02, 0.025], "ωc" => [0.09, 0.25], "w0" => [-2, 0.5], "wa" => [-3, 1.64])
+cosmo_ranges_CMB = Dict("ln10As" => [2.5, 3.5], "ns" => [0.88, 1.05], "H0" => [50, 80], "ωb" => [0.02, 0.025], "ωc" => [0.09, 0.2], "w0" => [-2, 0.5], "wa" => [-3, 1.64],
+                        "τ" => [0.02, 0.12], "yₚ" => [0.95, 1.05], "Mb_D5" => [-5, 5], "Mb_PP" => [-20, -18], "Mb_U3" => [-20, 20])
 cosmo_priors = Dict("ns" => [0.9649, 0.042], "ωb" => [0.02218, 0.00055])
 # Priors for EFT parameters for each tracer
 eft_ranges = Dict("b1p_BGS" => [0, 3], "b1p_LRG1" => [0, 3], "b1p_LRG2" => [0, 3], "b1p_LRG3" => [0, 3], "b1p_ELG2" => [0, 3], "b1p_QSO" => [0, 3],
@@ -157,24 +165,7 @@ eft_ranges = Dict("b1p_BGS" => [0, 3], "b1p_LRG1" => [0, 3], "b1p_LRG2" => [0, 3
                   "alpha0p_BGS" => [0, 12.5], "alpha0p_LRG1" => [0, 12.5], "alpha0p_LRG2" => [0, 12.5], "alpha0p_LRG3" => [0, 12.5], "alpha0p_ELG2" => [0, 12.5], "alpha0p_QSO" => [0, 12.5],
                   "alpha2p_BGS" => [0, 12.5], "alpha2p_LRG1" => [0, 12.5], "alpha2p_LRG2" => [0, 12.5], "alpha2p_LRG3" => [0, 12.5], "alpha2p_ELG2" => [0, 12.5], "alpha2p_QSO" => [0, 12.5],
                   "st0p_BGS" => [0, 2], "st0p_LRG1" => [0, 2], "st0p_LRG2" => [0, 2], "st0p_LRG3" => [0, 2], "st0p_ELG2" => [0, 2], "st0p_QSO" => [0, 2],
-                  "st2p_BGS" => [0, 5], "st2p_LRG1" => [0, 5], "st2p_LRG2" => [0, 5], "st2p_LRG3" => [0, 5], "st2p_ELG2" => [0, 5], "st2p_QSO" => [0, 5])   
-# Starting guesses and preconditioning steps for each parameter in the minimization
-init_values_ranges = Dict("ln10As" => [3.044, 0.25], "ns" => [0.9649, 0.042], "H0" => [67.36, 6], "ωb" => [0.02218, 0.00055], "ωc" => [0.12, 0.015], "w0" => [-0.5, 0.5], "wa" => [-1.5, 0.75], "τ" => [0.0506, 0.0086], "yₚ" => [1.0, 0.0025], "Mb_D5" => [0, 2], "Mb_PP" => [-19, 0.3], "Mb_U3" => [0, 5],
-                          "b1p_BGS" => [1, 0.4], "b1p_LRG1" => [1, 0.4], "b1p_LRG2" => [1, 0.4], "b1p_LRG3" => [1, 0.4], "b1p_ELG2" => [1, 0.4], "b1p_QSO" => [1, 0.4],
-                          "b2p_BGS" => [0, 5], "b2p_LRG1" => [0, 5], "b2p_LRG2" => [0, 5], "b2p_LRG3" => [0, 5], "b2p_ELG2" => [0, 5], "b2p_QSO" => [0, 5], 
-                          "bsp_BGS" => [0, 5], "bsp_LRG1" => [0, 5], "bsp_LRG2" => [0, 5], "bsp_LRG3" => [0, 5], "bsp_ELG2" => [0, 5], "bsp_QSO" => [0, 5], 
-                          "alpha0p_BGS" => [0, 12.5], "alpha0p_LRG1" => [0, 12.5], "alpha0p_LRG2" => [0, 12.5], "alpha0p_LRG3" => [0, 12.5], "alpha0p_ELG2" => [0, 12.5], "alpha0p_QSO" => [0, 12.5], 
-                          "alpha2p_BGS" => [0, 12.5], "alpha2p_LRG1" => [0, 12.5], "alpha2p_LRG2" => [0, 12.5], "alpha2p_LRG3" => [0, 12.5], "alpha2p_ELG2" => [0, 12.5], "alpha2p_QSO" => [0, 12.5], 
-                          "st0p_BGS" => [0, 2], "st0p_LRG1" => [0, 2], "st0p_LRG2" => [0, 2], "st0p_LRG3" => [0, 2], "st0p_ELG2" => [0, 2], "st0p_QSO" => [0, 2], 
-                          "st2p_BGS" => [0, 5], "st2p_LRG1" => [0, 5], "st2p_LRG2" => [0, 5], "st2p_LRG3" => [0, 5], "st2p_ELG2" => [0, 5], "st2p_QSO" => [0, 5])
-preconditioning_steps = Dict("ln10As" => 0.2, "ns" => 0.042, "H0" => 4, "ωb" => 0.00055, "ωc" => 0.01, "w0" => 0.5, "wa" => 1, "τ" => 0.0086, "yₚ" => 0.0025, "Mb_D5" => 2, "Mb_PP" => 0.3, "Mb_U3" => 5,
-                             "b1p_BGS" => 0.2, "b1p_LRG1" => 0.2, "b1p_LRG2" => 0.2, "b1p_LRG3" => 0.2, "b1p_ELG2" => 0.2, "b1p_QSO" => 0.2,
-                             "b2p_BGS" => 5, "b2p_LRG1" => 5, "b2p_LRG2" => 5, "b2p_LRG3" => 5, "b2p_ELG2" => 5, "b2p_QSO" => 5, 
-                             "bsp_BGS" => 5, "bsp_LRG1" => 5, "bsp_LRG2" => 5, "bsp_LRG3" => 5, "bsp_ELG2" => 5, "bsp_QSO" => 5, 
-                             "alpha0p_BGS" => 12.5, "alpha0p_LRG1" => 12.5, "alpha0p_LRG2" => 12.5, "alpha0p_LRG3" => 12.5, "alpha0p_ELG2" => 12.5, "alpha0p_QSO" => 12.5, 
-                             "alpha2p_BGS" => 12.5, "alpha2p_LRG1" => 12.5, "alpha2p_LRG2" => 12.5, "alpha2p_LRG3" => 12.5, "alpha2p_ELG2" => 12.5, "alpha2p_QSO" => 12.5, 
-                             "st0p_BGS" => 2, "st0p_LRG1" => 2, "st0p_LRG2" => 2, "st0p_LRG3" => 2, "st0p_ELG2" => 2, "st0p_QSO" => 2, 
-                             "st2p_BGS" => 5, "st2p_LRG1" => 5, "st2p_LRG2" => 5, "st2p_LRG3" => 5, "st2p_ELG2" => 5, "st2p_QSO" => 5)
+                  "st2p_BGS" => [0, 5], "st2p_LRG1" => [0, 5], "st2p_LRG2" => [0, 5], "st2p_LRG3" => [0, 5], "st2p_ELG2" => [0, 5], "st2p_QSO" => [0, 5])
 
 
 function theory_FS(theta_FS, emu_FS_components, kin)
@@ -254,13 +245,13 @@ end
 
 @model function model_FS(D_FS_all)
     # Draws cosmological parameters
-    ln10As ~ Uniform(cosmo_ranges["ln10As"][1], cosmo_ranges["ln10As"][2])
-    ns ~ Truncated(Normal(cosmo_priors["ns"][1], cosmo_priors["ns"][2]), cosmo_ranges["ns"][1], cosmo_ranges["ns"][2])               
-    H0 ~ Uniform(cosmo_ranges["H0"][1], cosmo_ranges["H0"][2])
-    ωb ~ Truncated(Normal(cosmo_priors["ωb"][1], cosmo_priors["ωb"][2]), cosmo_ranges["ωb"][1], cosmo_ranges["ωb"][2])            
-    ωc ~ Uniform(cosmo_ranges["ωc"][1], cosmo_ranges["ωc"][2])
-    w0 ~ Uniform(cosmo_ranges["w0"][1], cosmo_ranges["w0"][2])
-    wa ~ Uniform(cosmo_ranges["wa"][1], cosmo_ranges["wa"][2])
+    ln10As ~ Uniform(cosmo_ranges_FS_BAO["ln10As"][1], cosmo_ranges_FS_BAO["ln10As"][2])
+    ns ~ Truncated(Normal(cosmo_priors["ns"][1], cosmo_priors["ns"][2]), cosmo_ranges_FS_BAO["ns"][1], cosmo_ranges_FS_BAO["ns"][2])               
+    H0 ~ Uniform(cosmo_ranges_FS_BAO["H0"][1], cosmo_ranges_FS_BAO["H0"][2])
+    ωb ~ Truncated(Normal(cosmo_priors["ωb"][1], cosmo_priors["ωb"][2]), cosmo_ranges_FS_BAO["ωb"][1], cosmo_ranges_FS_BAO["ωb"][2])            
+    ωc ~ Uniform(cosmo_ranges_FS_BAO["ωc"][1], cosmo_ranges_FS_BAO["ωc"][2])
+    w0 ~ Uniform(cosmo_ranges_FS_BAO["w0"][1], cosmo_ranges_FS_BAO["w0"][2])
+    wa ~ Uniform(cosmo_ranges_FS_BAO["wa"][1], cosmo_ranges_FS_BAO["wa"][2])
     cosmo_params = [ln10As, ns, H0, ωb, ωc, w0, wa]
     # Extracts f and sigma8 values for each tracer using BAO emulator
     fsigma8_info = Effort.get_BAO(cosmo_params, BAO_emu)
@@ -361,13 +352,13 @@ end
 
 @model function model_FS_BAO(D_FS_BAO_all, D_Lya)
     # Draws cosmological parameters
-    ln10As ~ Uniform(cosmo_ranges["ln10As"][1], cosmo_ranges["ln10As"][2])
-    ns ~ Truncated(Normal(cosmo_priors["ns"][1], cosmo_priors["ns"][2]), cosmo_ranges["ns"][1], cosmo_ranges["ns"][2])               
-    H0 ~ Uniform(cosmo_ranges["H0"][1], cosmo_ranges["H0"][2])
-    ωb ~ Truncated(Normal(cosmo_priors["ωb"][1], cosmo_priors["ωb"][2]), cosmo_ranges["ωb"][1], cosmo_ranges["ωb"][2])            
-    ωc ~ Uniform(cosmo_ranges["ωc"][1], cosmo_ranges["ωc"][2])
-    w0 ~ Uniform(cosmo_ranges["w0"][1], cosmo_ranges["w0"][2])
-    wa ~ Uniform(cosmo_ranges["wa"][1], cosmo_ranges["wa"][2])
+    ln10As ~ Uniform(cosmo_ranges_FS_BAO["ln10As"][1], cosmo_ranges_FS_BAO["ln10As"][2])
+    ns ~ Truncated(Normal(cosmo_priors["ns"][1], cosmo_priors["ns"][2]), cosmo_ranges_FS_BAO["ns"][1], cosmo_ranges_FS_BAO["ns"][2])               
+    H0 ~ Uniform(cosmo_ranges_FS_BAO["H0"][1], cosmo_ranges_FS_BAO["H0"][2])
+    ωb ~ Truncated(Normal(cosmo_priors["ωb"][1], cosmo_priors["ωb"][2]), cosmo_ranges_FS_BAO["ωb"][1], cosmo_ranges_FS_BAO["ωb"][2])            
+    ωc ~ Uniform(cosmo_ranges_FS_BAO["ωc"][1], cosmo_ranges_FS_BAO["ωc"][2])
+    w0 ~ Uniform(cosmo_ranges_FS_BAO["w0"][1], cosmo_ranges_FS_BAO["w0"][2])
+    wa ~ Uniform(cosmo_ranges_FS_BAO["wa"][1], cosmo_ranges_FS_BAO["wa"][2])
     cosmo_params = [ln10As, ns, H0, ωb, ωc, w0, wa]
     # Extracts f and sigma8 values for each tracer using BAO emulator
     fsigma8_info = Effort.get_BAO(cosmo_params, BAO_emu)
@@ -472,17 +463,17 @@ end
 
 @model function model_FS_BAO_CMB(D_FS_BAO_all, D_Lya, D_CMB)
     # Draws cosmological parameters
-    ln10As ~ Uniform(2.5, 3.5)
-    ns ~ Uniform(0.88, 1.05)             
-    H0 ~ Uniform(cosmo_ranges["H0"][1], cosmo_ranges["H0"][2])
-    ωb ~ Uniform(cosmo_ranges["ωb"][1], cosmo_ranges["ωb"][2])           
-    ωc ~ Uniform(0.09, 0.2)
-    w0 ~ Uniform(cosmo_ranges["w0"][1], cosmo_ranges["w0"][2])
-    wa ~ Uniform(cosmo_ranges["wa"][1], cosmo_ranges["wa"][2])
+    ln10As ~ Uniform(cosmo_ranges_CMB["ln10As"][1], cosmo_ranges_CMB["ln10As"][2])
+    ns ~ Uniform(cosmo_ranges_CMB["ns"][1], cosmo_ranges_CMB["ns"][2])         
+    H0 ~ Uniform(cosmo_ranges_CMB["H0"][1], cosmo_ranges_CMB["H0"][2])
+    ωb ~ Uniform(cosmo_ranges_CMB["ωb"][1], cosmo_ranges_CMB["ωb"][2])           
+    ωc ~ Uniform(cosmo_ranges_CMB["ωc"][1], cosmo_ranges_CMB["ωc"][2])
+    w0 ~ Uniform(cosmo_ranges_CMB["w0"][1], cosmo_ranges_CMB["w0"][2])
+    wa ~ Uniform(cosmo_ranges_CMB["wa"][1], cosmo_ranges_CMB["wa"][2])
     # Parameters for CMB contribution
-    τ ~ Normal(0.0506, 0.0086)
+    τ ~ Truncated(Normal(0.0506, 0.0086), cosmo_ranges_CMB["τ"][1], cosmo_ranges_CMB["τ"][2])
     mν = 0.06
-    yₚ ~ Normal(1.0, 0.0025)
+    yₚ ~ Truncated(Normal(1.0, 0.0025), cosmo_ranges_CMB["yₚ"][1], cosmo_ranges_CMB["yₚ"][2])
     cosmo_params_FS_BAO = [ln10As, ns, H0, ωb, ωc, w0, wa]
     cosmo_params_CMB = [ln10As, ns, H0, ωb, ωc, τ, mν, w0, wa]
     # Extracts f and sigma8 values for each tracer using BAO emulator
@@ -591,17 +582,17 @@ end
 
 @model function model_FS_BAO_CMB_SN(D_FS_BAO_all, D_Lya, D_CMB, iΓ_SN, D_SN, z_SN, SN_type)
     # Draws cosmological parameters
-    ln10As ~ Uniform(2.5, 3.5)
-    ns ~ Uniform(0.88, 1.05)             
-    H0 ~ Uniform(cosmo_ranges["H0"][1], cosmo_ranges["H0"][2])
-    ωb ~ Uniform(cosmo_ranges["ωb"][1], cosmo_ranges["ωb"][2])           
-    ωc ~ Uniform(0.09, 0.2)
-    w0 ~ Uniform(cosmo_ranges["w0"][1], cosmo_ranges["w0"][2])
-    wa ~ Uniform(cosmo_ranges["wa"][1], cosmo_ranges["wa"][2])
+    ln10As ~ Uniform(cosmo_ranges_CMB["ln10As"][1], cosmo_ranges_CMB["ln10As"][2])
+    ns ~ Uniform(cosmo_ranges_CMB["ns"][1], cosmo_ranges_CMB["ns"][2])         
+    H0 ~ Uniform(cosmo_ranges_CMB["H0"][1], cosmo_ranges_CMB["H0"][2])
+    ωb ~ Uniform(cosmo_ranges_CMB["ωb"][1], cosmo_ranges_CMB["ωb"][2])           
+    ωc ~ Uniform(cosmo_ranges_CMB["ωc"][1], cosmo_ranges_CMB["ωc"][2])
+    w0 ~ Uniform(cosmo_ranges_CMB["w0"][1], cosmo_ranges_CMB["w0"][2])
+    wa ~ Uniform(cosmo_ranges_CMB["wa"][1], cosmo_ranges_CMB["wa"][2])
     # Parameters for CMB contribution
-    τ ~ Normal(0.0506, 0.0086)
+    τ ~ Truncated(Normal(0.0506, 0.0086), cosmo_ranges_CMB["τ"][1], cosmo_ranges_CMB["τ"][2])
     mν = 0.06
-    yₚ ~ Normal(1.0, 0.0025)
+    yₚ ~ Truncated(Normal(1.0, 0.0025), cosmo_ranges_CMB["yₚ"][1], cosmo_ranges_CMB["yₚ"][2])
     # Parameters for SN contribution
     if SN_type == "DESY5SN"
         Mb ~ Uniform(-5, 5)
@@ -776,30 +767,40 @@ elseif dataset == "FS+BAO+CMB+Union3SN"
         n_fit_params = 10 + 7*size(tracer_vector)[1]; fit_model = FS_BAO_CMB_Union3SN_model_w0waCDM; cosmo_fit_labels = ["ln10As", "ns", "H0", "ωb", "ωc", "w0", "wa", "τ", "yₚ", "Mb_U3"]
     end   
 end
-eft_fit_labels = []
-if dataset in ["FS", "FS+BAO", "FS+BAO+CMB", "FS+BAO+CMB+DESY5SN", "FS+BAO+CMB+PantheonPlusSN", "FS+BAO+CMB+Union3SN"] # Adds EFT parameters to the label vector
-    for tracer in tracer_vector
-        append!(eft_fit_labels, ["b1p_$(tracer)", "b2p_$(tracer)", "bsp_$(tracer)", "alpha0p_$(tracer)", "alpha2p_$(tracer)", "st0p_$(tracer)", "st2p_$(tracer)"])
-    end
+
+
+# Reads in the file storing the MCMC chains in order to set the preconditioning matrix and initial guess distributions
+MCMC_chains = npzread(chains_path)
+cov_mat = cov(MCMC_chains)
+step_sizes = 3*sqrt.(diag(cov_mat)) # goes 5x wider than chains to ensure spans wide enough guess range
+precondition_mat = inv(cov_mat)
+means = mean(MCMC_chains, dims=1)
+
+ncosmo = length(cosmo_fit_labels)
+cosmo_means = means[1:ncosmo]
+# overrides and initializes cosmological parameters at Planck 2018 values since some of them have bad projection effects (MCMC starting point not reliable)
+#cosmo_means[1] = 3.044; cosmo_means[2] = 0.9649; cosmo_means[3] = 71; cosmo_means[4] = 0.02218; cosmo_means[5] = 0.125
+#if variation == "w0waCDM"
+#    cosmo_means[6] = -1; cosmo_means[7] = 0
+#end
+cosmo_step_sizes = step_sizes[1:ncosmo]
+eft_means = means[ncosmo+1:end]
+eft_step_sizes = step_sizes[ncosmo+1:end]
+if dataset in ["FS", "FS+BAO"]
+    cosmo_bounds = [cosmo_ranges_FS_BAO[label] for label in cosmo_fit_labels]
+elseif dataset in ["FS+BAO+CMB", "FS+BAO+CMB+DESY5SN", "FS+BAO+CMB+PantheonPlusSN", "FS+BAO+CMB+Union3SN"]
+    cosmo_bounds = [cosmo_ranges_CMB[label] for label in cosmo_fit_labels]
 end
-all_fit_labels = vcat(cosmo_fit_labels, eft_fit_labels)
-# Sets up the preconditioning matrix to help LBFGS converge better
-preconditioning_matrix = Diagonal([1/preconditioning_steps[label] for label in all_fit_labels])
 
 MAP_param_estimates = SharedArray{Float64}(n_runs, n_fit_params)
 MAP_posterior_estimates = SharedArray{Float64}(n_runs)
 for i in 1:n_runs
     try
-        if dataset in ["FS", "FS+BAO"]
-            init_guesses_cosmo = [rand(Truncated(Normal(init_values_ranges[label][1], init_values_ranges[label][2]), 
-                                  cosmo_ranges[label][1], cosmo_ranges[label][2])) for label in cosmo_fit_labels]
-        elseif dataset in ["FS+BAO+CMB", "FS+BAO+CMB+DESY5SN", "FS+BAO+CMB+PantheonPlusSN", "FS+BAO+CMB+Union3SN"]
-            init_guesses_cosmo = [rand(Truncated(Normal(init_values_ranges[label][1], init_values_ranges[label][2]), 
-                                  cosmo_ranges_CMB[label][1], cosmo_ranges_CMB[label][2])) for label in cosmo_fit_labels]
-        end
-        init_guesses_eft = [rand(Normal(init_values_ranges[label][1], init_values_ranges[label][2])) for label in eft_fit_labels]
+        init_guesses_cosmo = [rand(Truncated(Normal(cosmo_means[cosmo_ind], cosmo_step_sizes[cosmo_ind]),
+                              cosmo_bounds[cosmo_ind][1], cosmo_bounds[cosmo_ind][2])) for cosmo_ind in 1:length(cosmo_means)]
+        init_guesses_eft = [rand(Normal(eft_means[eft_ind], eft_step_sizes[eft_ind])) for eft_ind in 1:length(eft_means)]
         init_guesses_all = vcat(init_guesses_cosmo, init_guesses_eft)
-        @time fit_result = maximum_a_posteriori(fit_model, LBFGS(m=50, P=preconditioning_matrix); initial_params=init_guesses_all)
+        @time fit_result = maximum_a_posteriori(fit_model, LBFGS(m=50, P=precondition_mat); initial_params=init_guesses_all)
         MAP_posterior_estimates[i] = fit_result.lp
         MAP_param_estimates[i, :] = fit_result.values.array
         println("minimization okay")
