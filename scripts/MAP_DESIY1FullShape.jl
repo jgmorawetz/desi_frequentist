@@ -772,17 +772,12 @@ end
 # Reads in the file storing the MCMC chains in order to set the preconditioning matrix and initial guess distributions
 MCMC_chains = npzread(chains_path)
 cov_mat = cov(MCMC_chains)
-step_sizes = 3*sqrt.(diag(cov_mat)) # goes 5x wider than chains to ensure spans wide enough guess range
+step_sizes = 5*sqrt.(diag(cov_mat)) # goes 5x wider than chains to ensure spans wide enough guess range
 precondition_mat = inv(cov_mat)
 means = mean(MCMC_chains, dims=1)
 
 ncosmo = length(cosmo_fit_labels)
 cosmo_means = means[1:ncosmo]
-# overrides and initializes cosmological parameters at Planck 2018 values since some of them have bad projection effects (MCMC starting point not reliable)
-#cosmo_means[1] = 3.044; cosmo_means[2] = 0.9649; cosmo_means[3] = 71; cosmo_means[4] = 0.02218; cosmo_means[5] = 0.125
-#if variation == "w0waCDM"
-#    cosmo_means[6] = -1; cosmo_means[7] = 0
-#end
 cosmo_step_sizes = step_sizes[1:ncosmo]
 eft_means = means[ncosmo+1:end]
 eft_step_sizes = step_sizes[ncosmo+1:end]
