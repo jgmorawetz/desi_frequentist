@@ -1872,10 +1872,16 @@ MLE_param_estimates = SharedArray{Float64}(n_runs, n_fit_params)
 MLE_likelihood_estimates = SharedArray{Float64}(n_runs)
 for i in 1:n_runs
     try
-        init_guesses_cosmo = [rand(Truncated(Normal(cosmo_means[cosmo_ind], cosmo_step_sizes[cosmo_ind]),
-                              cosmo_bounds[cosmo_ind][1], cosmo_bounds[cosmo_ind][2])) for cosmo_ind in 1:length(cosmo_means)]
-        init_guesses_eft = [rand(Truncated(Normal(eft_means[eft_ind], eft_step_sizes[eft_ind]),
-                            eft_bounds[eft_ind][1], eft_bounds[eft_ind][2])) for eft_ind in 1:length(eft_means)]
+        # uses the actual MLE as the first guess and then does random ones after this
+        if i == 1
+            init_guesses_cosmo = cosmo_means
+            init_guesses_eft = eft_means
+        else
+            init_guesses_cosmo = [rand(Truncated(Normal(cosmo_means[cosmo_ind], cosmo_step_sizes[cosmo_ind]),
+                                  cosmo_bounds[cosmo_ind][1], cosmo_bounds[cosmo_ind][2])) for cosmo_ind in 1:length(cosmo_means)]
+            init_guesses_eft = [rand(Truncated(Normal(eft_means[eft_ind], eft_step_sizes[eft_ind]),
+                                eft_bounds[eft_ind][1], eft_bounds[eft_ind][2])) for eft_ind in 1:length(eft_means)]
+        end
         init_guesses_all = vcat(init_guesses_cosmo, init_guesses_eft)
         @time fit_result = maximum_a_posteriori(fit_model, LBFGS(m=50, P=precondition_mat); initial_params=init_guesses_all)
         MLE_likelihood_estimates[i] = fit_result.lp
