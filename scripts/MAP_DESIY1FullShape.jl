@@ -33,7 +33,7 @@ config = ArgParseSettings()
     arg_type=String
     required=true
     "--chains_path"
-    help="Specify the path to the file containing the MCMC chains (for preconditioning/initial guess purposes)"
+    help="Specify the path to the file containing the MCMC chains (for preconditioning)"
     arg_type=String
     required=true
 end
@@ -732,70 +732,53 @@ FS_BAO_CMB_Union3SN_model_w0waCDM = model_FS_BAO_CMB_SN(D_FS_BAO_all, D_Lya, D_C
 # Obtains the MAP values for the desired dataset and variation
 if dataset == "FS"
     if variation == "LCDM"
-        n_fit_params = 5 + 7*size(tracer_vector)[1]; fit_model = FS_model_LCDM; cosmo_fit_labels = ["ln10As", "ns", "H0", "ωb", "ωc"]
+        n_fit_params = 5 + 7*size(tracer_vector)[1]; fit_model = FS_model_LCDM
     elseif variation == "w0waCDM"
-        n_fit_params = 7 + 7*size(tracer_vector)[1]; fit_model = FS_model_w0waCDM; cosmo_fit_labels = ["ln10As", "ns", "H0", "ωb", "ωc", "w0", "wa"]
+        n_fit_params = 7 + 7*size(tracer_vector)[1]; fit_model = FS_model_w0waCDM
     end
 elseif dataset == "FS+BAO"
     if variation == "LCDM"
-        n_fit_params = 5 + 7*size(tracer_vector)[1]; fit_model = FS_BAO_model_LCDM; cosmo_fit_labels = ["ln10As", "ns", "H0", "ωb", "ωc"]
+        n_fit_params = 5 + 7*size(tracer_vector)[1]; fit_model = FS_BAO_model_LCDM
     elseif variation == "w0waCDM"
-        n_fit_params = 7 + 7*size(tracer_vector)[1]; fit_model = FS_BAO_model_w0waCDM; cosmo_fit_labels = ["ln10As", "ns", "H0", "ωb", "ωc", "w0", "wa"]
+        n_fit_params = 7 + 7*size(tracer_vector)[1]; fit_model = FS_BAO_model_w0waCDM
     end
 elseif dataset == "FS+BAO+CMB"
     if variation == "LCDM"
-        n_fit_params = 7 + 7*size(tracer_vector)[1]; fit_model = FS_BAO_CMB_model_LCDM; cosmo_fit_labels = ["ln10As", "ns", "H0", "ωb", "ωc", "τ", "yₚ"]
+        n_fit_params = 7 + 7*size(tracer_vector)[1]; fit_model = FS_BAO_CMB_model_LCDM
     elseif variation == "w0waCDM"
-        n_fit_params = 9 + 7*size(tracer_vector)[1]; fit_model = FS_BAO_CMB_model_w0waCDM; cosmo_fit_labels = ["ln10As", "ns", "H0", "ωb", "ωc", "w0", "wa", "τ", "yₚ"]
+        n_fit_params = 9 + 7*size(tracer_vector)[1]; fit_model = FS_BAO_CMB_model_w0waCDM
     end
 elseif dataset == "FS+BAO+CMB+DESY5SN"
     if variation == "LCDM"
-        n_fit_params = 8 + 7*size(tracer_vector)[1]; fit_model = FS_BAO_CMB_DESY5SN_model_LCDM; cosmo_fit_labels = ["ln10As", "ns", "H0", "ωb", "ωc", "τ", "yₚ", "Mb_D5"]
+        n_fit_params = 8 + 7*size(tracer_vector)[1]; fit_model = FS_BAO_CMB_DESY5SN_model_LCDM
     elseif variation == "w0waCDM"
-        n_fit_params = 10 + 7*size(tracer_vector)[1]; fit_model = FS_BAO_CMB_DESY5SN_model_w0waCDM; cosmo_fit_labels = ["ln10As", "ns", "H0", "ωb", "ωc", "w0", "wa", "τ", "yₚ", "Mb_D5"]
+        n_fit_params = 10 + 7*size(tracer_vector)[1]; fit_model = FS_BAO_CMB_DESY5SN_model_w0waCDM
     end
 elseif dataset == "FS+BAO+CMB+PantheonPlusSN"
     if variation == "LCDM"
-        n_fit_params = 8 + 7*size(tracer_vector)[1]; fit_model = FS_BAO_CMB_PantheonPlusSN_model_LCDM; cosmo_fit_labels = ["ln10As", "ns", "H0", "ωb", "ωc", "τ", "yₚ", "Mb_PP"]
+        n_fit_params = 8 + 7*size(tracer_vector)[1]; fit_model = FS_BAO_CMB_PantheonPlusSN_model_LCDM
     elseif variation == "w0waCDM"
-        n_fit_params = 10 + 7*size(tracer_vector)[1]; fit_model = FS_BAO_CMB_PantheonPlusSN_model_w0waCDM; cosmo_fit_labels = ["ln10As", "ns", "H0", "ωb", "ωc", "w0", "wa", "τ", "yₚ", "Mb_PP"]
+        n_fit_params = 10 + 7*size(tracer_vector)[1]; fit_model = FS_BAO_CMB_PantheonPlusSN_model_w0waCDM
     end
 elseif dataset == "FS+BAO+CMB+Union3SN"
     if variation == "LCDM"
-        n_fit_params = 8 + 7*size(tracer_vector)[1]; fit_model = FS_BAO_CMB_Union3SN_model_LCDM; cosmo_fit_labels = ["ln10As", "ns", "H0", "ωb", "ωc", "τ", "yₚ", "Mb_U3"] 
+        n_fit_params = 8 + 7*size(tracer_vector)[1]; fit_model = FS_BAO_CMB_Union3SN_model_LCDM
     elseif variation == "w0waCDM"
-        n_fit_params = 10 + 7*size(tracer_vector)[1]; fit_model = FS_BAO_CMB_Union3SN_model_w0waCDM; cosmo_fit_labels = ["ln10As", "ns", "H0", "ωb", "ωc", "w0", "wa", "τ", "yₚ", "Mb_U3"]
+        n_fit_params = 10 + 7*size(tracer_vector)[1]; fit_model = FS_BAO_CMB_Union3SN_model_w0waCDM
     end   
 end
 
 
-# Reads in the file storing the MCMC chains in order to set the preconditioning matrix and initial guess distributions
+# Reads in the file storing the MCMC chains in order to set the preconditioning matrix
 MCMC_chains = npzread(chains_path)
 cov_mat = cov(MCMC_chains)
-step_sizes = 5*sqrt.(diag(cov_mat)) # goes 5x wider than chains to ensure spans wide enough guess range
 precondition_mat = inv(cov_mat)
-means = mean(MCMC_chains, dims=1)
-
-ncosmo = length(cosmo_fit_labels)
-cosmo_means = means[1:ncosmo]
-cosmo_step_sizes = step_sizes[1:ncosmo]
-eft_means = means[ncosmo+1:end]
-eft_step_sizes = step_sizes[ncosmo+1:end]
-if dataset in ["FS", "FS+BAO"]
-    cosmo_bounds = [cosmo_ranges_FS_BAO[label] for label in cosmo_fit_labels]
-elseif dataset in ["FS+BAO+CMB", "FS+BAO+CMB+DESY5SN", "FS+BAO+CMB+PantheonPlusSN", "FS+BAO+CMB+Union3SN"]
-    cosmo_bounds = [cosmo_ranges_CMB[label] for label in cosmo_fit_labels]
-end
 
 MAP_param_estimates = SharedArray{Float64}(n_runs, n_fit_params)
 MAP_posterior_estimates = SharedArray{Float64}(n_runs)
 for i in 1:n_runs
     try
-        init_guesses_cosmo = [rand(Truncated(Normal(cosmo_means[cosmo_ind], cosmo_step_sizes[cosmo_ind]),
-                              cosmo_bounds[cosmo_ind][1], cosmo_bounds[cosmo_ind][2])) for cosmo_ind in 1:length(cosmo_means)]
-        init_guesses_eft = [rand(Normal(eft_means[eft_ind], eft_step_sizes[eft_ind])) for eft_ind in 1:length(eft_means)]
-        init_guesses_all = vcat(init_guesses_cosmo, init_guesses_eft)
-        @time fit_result = maximum_a_posteriori(fit_model, LBFGS(m=50, P=precondition_mat); initial_params=init_guesses_all)
+        @time fit_result = maximum_a_posteriori(fit_model, LBFGS(m=50, P=precondition_mat))
         MAP_posterior_estimates[i] = fit_result.lp
         MAP_param_estimates[i, :] = fit_result.values.array
         println("minimization okay")
