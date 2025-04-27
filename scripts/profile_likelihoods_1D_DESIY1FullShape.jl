@@ -57,14 +57,8 @@ config = ArgParseSettings()
     help="Specify the path to the file containing the MCMC chains (for preconditioning/initial guess purposes)"
     arg_type=String
     required=true
-    "--MLE_likelihood_path"
-    help="Specify the path to the file containing the MLE likelihood values (for initial guess purposes)"
-    arg_type=String
-    required=true
-    "--MLE_param_path"
-    help="Specify the path to the file containing the MLE parameter values (for initial guess purposes)"
-    arg_type=String
-    required=true
+    "--MLE_path"
+    help="Specify the path to the file containing the MLE best fits (for initial guess)"
 end
 parsed_args = parse_args(config)
 n_runs = parsed_args["n_runs"]
@@ -76,8 +70,7 @@ param_index = parsed_args["param_index"]
 dataset = parsed_args["dataset"]
 variation = parsed_args["variation"]
 chains_path = parsed_args["chains_path"]
-MLE_likelihood_path = parsed_args["MLE_likelihood_path"]
-MLE_param_path = parsed_args["MLE_param_path"]
+MLE_path = parsed_args["MLE_path"]
 all_params = LinRange(param_lower, param_upper, n_profile)
 param_value = all_params[param_index]
 
@@ -1722,7 +1715,7 @@ if variation == "LCDM"
         FS_BAO_CMB_model = model_FS_BAO_CMB_Omegam(D_FS_BAO_all, D_Lya, D_CMB) | (Om=param_value, w0=-1, wa=0)
         FS_BAO_CMB_DESY5SN_model = model_FS_BAO_CMB_SN_Omegam(D_FS_BAO_all, D_Lya, D_CMB, iΓ_DESY5SN, D_DESY5SN, z_DESY5SN, "DESY5SN") | (Om=param_value, w0=-1, wa=0)
         FS_BAO_CMB_PantheonPlusSN_model = model_FS_BAO_CMB_SN_Omegam(D_FS_BAO_all, D_Lya, D_CMB, iΓ_PantheonPlusSN, D_PantheonPlusSN, z_PantheonPlusSN, "PantheonPlusSN") | (Om=param_value, w0=-1, wa=0)
-        FS_BAO_CMB_Union3SN_model = model_FS_BAO_CMB_Omegam(D_FS_BAO_all, D_Lya, D_CMB, iΓ_Union3SN, D_Union3SN, z_Union3SN, "Union3SN") | (Om=param_value, w0=-1, wa=0)
+        FS_BAO_CMB_Union3SN_model = model_FS_BAO_CMB_SN_Omegam(D_FS_BAO_all, D_Lya, D_CMB, iΓ_Union3SN, D_Union3SN, z_Union3SN, "Union3SN") | (Om=param_value, w0=-1, wa=0)
     end
 elseif variation == "w0waCDM"
     if param_label == "sigma8"
@@ -1832,28 +1825,27 @@ end
 
 # Reads in the file storing the MCMC chains and MLE estimates in order to set the preconditioning matrix and initial guess distributions
 MCMC_chains = npzread(chains_path)
-MLE_likelihood = npzread(MLE_likelihood_path); nonzero_ind = findall(!=(0), MLE_likelihood); nonzero_max_ind = argmax(MLE_likelihood[i] for i in nonzero_ind); max_ind = nonzero_ind[nonzero_max_ind]
-MLE_param = npzread(MLE_param_path); MLE_param_set = MLE_param[max_ind]
+MLE_bestfits = npzread(MLE_path)
 if param_label == "sigma8"
     MCMC_chains = MCMC_chains[:, Not(1)]
-    MLE_param_set = MLE_param_set[Not(1)]
+    MLE_bestfits = MLE_bestfits[Not(1)]
 elseif param_label == "H0"
     MCMC_chains = MCMC_chains[:, Not(3)]
-    MLE_param_set = MLE_param_set[Not(3)]
+    MLE_bestfits = MLE_bestfits[Not(3)]
 elseif param_label == "Omegam"
     MCMC_chains = MCMC_chains[:, Not(5)]
-    MLE_param_set = MLE_param_set[Not(5)]
+    MLE_bestfits = MLE_bestfits[Not(5)]
 elseif param_label == "w0"
     MCMC_chains = MCMC_chains[:, Not(6)]
-    MLE_param_set = MLE_param_set[Not(6)]
+    MLE_bestfits = MLE_bestfits[Not(6)]
 elseif param_label == "wa"
     MCMC_chains = MCMC_chains[:, Not(7)]
-    MLE_param_set = MLE_param_set[Not(7)]
+    MLE_bestfits = MLE_bestfits[Not(7)]
 end
 cov_mat = cov(MCMC_chains)
-step_sizes = sqrt.(diag(cov_mat)) # only goes 1x of chain width since already have access to global MLE parameter values (already very close)
+step_sizes = 3*sqrt.(diag(cov_mat)) # only goes 2x of chain width since already have access to global MLE parameter values (already very close)
 precondition_mat = inv(cov_mat)
-means = MLE_param_set
+means = MLE_bestfits
 
 ncosmo = length(cosmo_fit_labels)
 cosmo_means = means[1:ncosmo]
