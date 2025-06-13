@@ -25,7 +25,7 @@ function theory_BAO(theta_BAO, emu_BAO, zeff, tracer)
     """Constructs theory vector for post-reconstruction BAO compressed parameters."""
     # theta_BAO is cosmological parameter vector [ln10As, ns, H0, ωb, ωc, w0, wa]
     theta_BAO_fid = [3.044, 0.9649, 67.36, 0.02237, 0.1200, -1, 0] # fiducial planck 2018 cosmology
-    h_fid = theta_BAO_fid[3]/100; Ωcb_fid = (theta_BAO_fid[4]+theta_BAO_fid[5])/h_fid^2
+    h_fid = theta_BAO_fid[3]/100; Ωcb_fid = (theta_BAO_fid[4]+theta_BAO_fid[5])/h_fid^2; w0_fid=theta_BAO_fid[6]; wa_fid=theta_BAO_fid[7]
     h_true = theta_BAO[3]/100; Ωcb_true = (theta_BAO[4]+theta_BAO[5])/h_true^2; w0_true=theta_BAO[6]; wa_true=theta_BAO[7]
     mν_fixed = 0.06
     # Computes H(z) and D_A(z) for fid and model cosmologies
