@@ -8,9 +8,9 @@ fsat_dict = Dict("BGS" => 0.15, "LRG1" => 0.15, "LRG2" => 0.15, "LRG3" => 0.15, 
 sigv_dict = Dict("BGS" => 5.06, "LRG1" => 6.20, "LRG2" => 6.20, "LRG3" => 6.20, "ELG2" => 3.11, "QSO" => 5.68)
 
 # Emulator range for cosmological parameters (and penalizations for ns10 and BBN when necessary)
-cosmo_ranges_FS_BAO = Dict("ln10As" => [2.0, 3.5], "ns" => [0.8, 1.1], "H0" => [50, 80], "ωb" => [0.02, 0.025], "ωc" => [0.09, 0.25], "w0" => [-2, 0.5], "wa" => [-3, 1.64])
-cosmo_ranges_CMB = Dict("ln10As" => [2.5, 3.5], "ns" => [0.88, 1.05], "H0" => [50, 80], "ωb" => [0.02, 0.025], "ωc" => [0.09, 0.2], "w0" => [-2, 0.5], "wa" => [-3, 1.64],
-                        "τ" => [0.02, 0.12], "yₚ" => [0.95, 1.05], "Mb_D5" => [-5, 5], "Mb_PP" => [-20, -18], "Mb_U3" => [-20, 20])
+cosmo_ranges_FS_BAO = Dict("ln10As" => [2.0, 3.5], "ns" => [0.8, 1.1], "H0" => [50, 100], "ωb" => [0.02, 0.025], "ωc" => [0.08, 0.18], "w0" => [-3, 1], "wa" => [-3, 2])
+cosmo_ranges_CMB = Dict("ln10As" => [2.0, 3.5], "ns" => [0.8, 1.1], "H0" => [50, 100], "ωb" => [0.02, 0.025], "ωc" => [0.08, 0.18], "w0" => [-3, 1], "wa" => [-3, 2],
+                        "τ" => [0.01, 0.2], "yₚ" => [0.95, 1.05], "Mb_D5" => [-5, 5], "Mb_PP" => [-20, -18], "Mb_U3" => [-20, 20])
 cosmo_priors = Dict("ns" => [0.9649, 0.042], "ωb" => [0.02218, 0.00055])
 
 # Search ranges for the EFT parameters when no priors are applied (for profile likelihoods)

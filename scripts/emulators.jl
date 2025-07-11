@@ -6,10 +6,10 @@ using Capse
 
 # Relevant folder paths and details
 home_dir = "/global/homes/j/jgmorawe/FrequentistExample1/FrequentistExample1/"
-FS_emu_dir = home_dir * "/FS_emulator/batch_trained_velocileptors_james_effort_wcdm_20000/"
-BAO_emu_dir = home_dir * "/BAO_emulator_ln10As_version/"
+FS_emu_dir = home_dir * "/batch_trained_velocileptors_james_effort_wcdm_70000/"
+BAO_emu_dir = home_dir * "/BAO_emulator/"
 sigma8_emu_dir = home_dir * "/BAO_emulator_sigma8_version/"
-CMB_emu_dir = home_dir * "/CMB_emulator/"
+CMB_emu_dir = home_dir * "/trained_capse_mnuw0wacdm_40000/"
 tracers = ["BGS", "LRG1", "LRG2", "LRG3", "ELG2", "QSO"]
 redshift_indices = [1, 2, 3, 4, 6, 7]
 redshift_indices = Dict(zip(tracers, redshift_indices))
