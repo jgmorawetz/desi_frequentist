@@ -91,6 +91,18 @@ elseif dataset == "FS+BAO+CMB+PantheonPlusSN"
     elseif variation == "w0waCDM"
         model = model_FS_BAO_CMB_SN_bay(D_FS_BAO_dict, D_Lya, D_CMB, iΓ_PantheonPlusSN, D_PantheonPlusSN, z_PantheonPlusSN, "PantheonPlusSN")
     end
+elseif dataset == "BAO+CMB"
+    if variation == "LCDM"
+        model = model_BAO_CMB_bay(D_BAO_dict, D_Lya, D_CMB) | (w0=-1, wa=0)
+    elseif variation == "w0waCDM"
+        model = model_BAO_CMB_bay(D_BAO_dict, D_Lya, D_CMB)
+    end
+elseif dataset == "BAO+CMB+Union3SN"
+    if variation == "LCDM"
+        model = model_BAO_CMB_SN_bay(D_BAO_dict, D_Lya, D_CMB, iΓ_Union3SN, D_Union3SN, z_Union3SN, "Union3SN") | (w0=-1, wa=0)
+    elseif variation == "w0waCDM"
+        model = model_BAO_CMB_SN_bay(D_BAO_dict, D_Lya, D_CMB, iΓ_Union3SN, D_Union3SN, z_Union3SN, "Union3SN")
+    end
 end
 
 # Runs the chain and saves to file
