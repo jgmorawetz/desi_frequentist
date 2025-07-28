@@ -496,3 +496,71 @@ end
     prediction_SN = iΓ_SN * theory_SN(cosmo_params_FS_BAO, Mb, z_SN, SN_type)
     D_SN ~ MvNormal(prediction_SN, I)
 end
+
+@model function model_BAO_CMB_bay(D_BAO_dict, D_Lya, D_CMB)
+    """Likelihood for BAO and CMB joint."""
+    # Draws cosmological parameters
+    ln10As ~ Uniform(cosmo_ranges_CMB["ln10As"][1], cosmo_ranges_CMB["ln10As"][2])
+    ns ~ Uniform(cosmo_ranges_CMB["ns"][1], cosmo_ranges_CMB["ns"][2])
+    H0 ~ Uniform(cosmo_ranges_CMB["H0"][1], cosmo_ranges_CMB["H0"][2])
+    ωb ~ Uniform(cosmo_ranges_CMB["ωb"][1], cosmo_ranges_CMB["ωb"][2])
+    ωc ~ Uniform(cosmo_ranges_CMB["ωc"][1], cosmo_ranges_CMB["ωc"][2])
+    w0 ~ Uniform(cosmo_ranges_CMB["w0"][1], cosmo_ranges_CMB["w0"][2])
+    wa ~ Uniform(cosmo_ranges_CMB["wa"][1], cosmo_ranges_CMB["wa"][2])
+    # Parameters for CMB contribution
+    τ ~ Truncated(Normal(0.0506, 0.0086), cosmo_ranges_CMB["τ"][1], cosmo_ranges_CMB["τ"][2])
+    mν = 0.06
+    yₚ ~ Truncated(Normal(1.0, 0.0025), cosmo_ranges_CMB["yₚ"][1], cosmo_ranges_CMB["yₚ"][2])
+    cosmo_params_FS_BAO = [ln10As, ns, H0, ωb, ωc, w0, wa]
+    cosmo_params_CMB = [ln10As, ns, H0, ωb, ωc, τ, mν, w0, wa]
+    for tracer in tracer_vector
+        prediction_BAO = iΓ_BAO_dict[tracer] * theory_BAO(cosmo_params_FS_BAO, BAO_emu, redshift_eff[tracer], tracer)
+        D_BAO_dict[tracer] ~ MvNormal(prediction_BAO, I)
+    end
+    # Adds Lya BAO as a stand-alone (uncorrelated with other tracers)
+    prediction_Lya = iΓ_Lya * theory_BAO(cosmo_params_FS_BAO, BAO_emu, 2.33, "Lya")
+    D_Lya ~ MvNormal(prediction_Lya, I)
+    # Adds CMB contribution
+    prediction_CMB = iΓ_CMB * theory_CMB(cosmo_params_CMB, CMB_emus) ./ (yₚ^2)
+    D_CMB ~ MvNormal(prediction_CMB, I)
+end
+
+@model function model_BAO_CMB_SN_bay(D_BAO_dict, D_Lya, D_CMB, iΓ_SN, D_SN, z_SN, SN_type)
+    """Likelihood for BAO, CMB and SN joint."""
+    # Draws cosmological parameters
+    ln10As ~ Uniform(cosmo_ranges_CMB["ln10As"][1], cosmo_ranges_CMB["ln10As"][2])
+    ns ~ Uniform(cosmo_ranges_CMB["ns"][1], cosmo_ranges_CMB["ns"][2])
+    H0 ~ Uniform(cosmo_ranges_CMB["H0"][1], cosmo_ranges_CMB["H0"][2])
+    ωb ~ Uniform(cosmo_ranges_CMB["ωb"][1], cosmo_ranges_CMB["ωb"][2])
+    ωc ~ Uniform(cosmo_ranges_CMB["ωc"][1], cosmo_ranges_CMB["ωc"][2])
+    w0 ~ Uniform(cosmo_ranges_CMB["w0"][1], cosmo_ranges_CMB["w0"][2])
+    wa ~ Uniform(cosmo_ranges_CMB["wa"][1], cosmo_ranges_CMB["wa"][2])
+    # Parameters for CMB contribution
+    τ ~ Truncated(Normal(0.0506, 0.0086), cosmo_ranges_CMB["τ"][1], cosmo_ranges_CMB["τ"][2])
+    mν = 0.06
+    yₚ ~ Truncated(Normal(1.0, 0.0025), cosmo_ranges_CMB["yₚ"][1], cosmo_ranges_CMB["yₚ"][2])
+    # Parameters for SN contribution
+    if SN_type == "DESY5SN"
+        Mb ~ Uniform(-5, 5)
+    elseif SN_type == "PantheonPlusSN"
+        Mb ~ Uniform(-20, -18)
+    elseif SN_type == "Union3SN"
+        Mb ~ Uniform(-20, 20)
+    end
+    cosmo_params_FS_BAO = [ln10As, ns, H0, ωb, ωc, w0, wa]
+    cosmo_params_CMB = [ln10As, ns, H0, ωb, ωc, τ, mν, w0, wa]
+    for tracer in tracer_vector
+        prediction_BAO = iΓ_BAO_dict[tracer] * theory_BAO(cosmo_params_FS_BAO, BAO_emu, redshift_eff[tracer], tracer)
+        D_BAO_dict[tracer] ~ MvNormal(prediction_BAO, I)
+    end
+    # Adds Lya BAO as a stand-alone (uncorrelated with other tracers)
+    prediction_Lya = iΓ_Lya * theory_BAO(cosmo_params_FS_BAO, BAO_emu, 2.33, "Lya")
+    D_Lya ~ MvNormal(prediction_Lya, I)
+    # Adds CMB contribution
+    prediction_CMB = iΓ_CMB * theory_CMB(cosmo_params_CMB, CMB_emus) ./ (yₚ^2)
+    D_CMB ~ MvNormal(prediction_CMB, I)
+    # Adds SN contribution
+    prediction_SN = iΓ_SN * theory_SN(cosmo_params_FS_BAO, Mb, z_SN, SN_type)
+    D_SN ~ MvNormal(prediction_SN, I)
+end
+
