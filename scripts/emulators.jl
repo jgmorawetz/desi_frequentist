@@ -1,34 +1,27 @@
 using Pkg
 Pkg.activate(".")
 using Effort
+using AbstractCosmologicalEmulators
 using Capse
 
 
-# Relevant folder paths and details
-home_dir = "/global/homes/j/jgmorawe/FrequentistExample1/FrequentistExample1/"
-FS_emu_dir = home_dir * "/batch_trained_velocileptors_james_effort_wcdm_70000/"
-BAO_emu_dir = home_dir * "/BAO_emulator/"
-sigma8_emu_dir = home_dir * "/BAO_emulator_sigma8_version/"
-CMB_emu_dir = home_dir * "/trained_capse_mnuw0wacdm_40000/"
-tracers = ["BGS", "LRG1", "LRG2", "LRG3", "ELG2", "QSO"]
-redshift_indices = [1, 2, 3, 4, 6, 7]
-redshift_indices = Dict(zip(tracers, redshift_indices))
+# Folder paths
+base_dir = "/home/jgmorawe/projects/rrg-wperciva/jgmorawe/frequentist_project/"
+FS_emu_dir = base_dir * "/trained_effort_velocileptors_rept_mnuw0wacdm_200000/"
+BAO_ln10As_emu_dir = base_dir * "/trained_ace_mnuw0wacdm_ln10As_basis_200000/"
+BAO_sigma8_emu_dir = base_dir * "/trained_ace_mnuw0wacdm_sigma8_basis_200000/"
+CMB_emu_dir = base_dir * "/trained_capse_mnuw0wacdm_40000/"
 
-# Reads in the FS emulators
-mono_paths = Dict(tracer => FS_emu_dir * string(redshift_indices[tracer]) * "/0/" for tracer in tracers)
-quad_paths = Dict(tracer => FS_emu_dir * string(redshift_indices[tracer]) * "/2/" for tracer in tracers)
-hexa_paths = Dict(tracer => FS_emu_dir * string(redshift_indices[tracer]) * "/4/" for tracer in tracers)
-FS_emus = Dict(tracer => [Effort.load_multipole_noise_emulator(mono_paths[tracer]),
-                          Effort.load_multipole_noise_emulator(quad_paths[tracer]),
-                          Effort.load_multipole_noise_emulator(hexa_paths[tracer])] for tracer in tracers)
+# Loads the monopole/quadrupole/hexadecapole emulators for full-shape
+FS_emus = [Effort.load_multipole_emulator(FS_emu_dir * "/0/"),
+           Effort.load_multipole_emulator(FS_emu_dir * "/2/"),
+           Effort.load_multipole_emulator(FS_emu_dir * "/4/")]
 
-# Reads in the BAO emulator
-BAO_emu = Effort.load_BAO_emulator(BAO_emu_dir)
+# Loads the BAO emulators (both for ln10As and sigma8 bases)
+BAO_ln10As_emu = AbstractCosmologicalEmulators.load_trained_emulator(BAO_ln10As_emu_dir)
+BAO_sigma8_emu = AbstractCosmologicalEmulators.load_trained_emulator(BAO_sigma8_emu_dir)
 
-# Reads in the sigma8 emulator (for converting to ln10As basis)
-sigma_emu = Effort.load_BAO_emulator(sigma8_emu_dir)
-
-# Reads in the CMB emulators
+# Loads the CMB emulators for TT, TE and EE
 TT_emu = Capse.load_emulator(CMB_emu_dir * "/TT/")
 TE_emu = Capse.load_emulator(CMB_emu_dir * "/TE/")
 EE_emu = Capse.load_emulator(CMB_emu_dir * "/EE/")
